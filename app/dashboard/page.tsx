@@ -173,6 +173,7 @@ export default function Dashboard() {
   const [newPassword, setNewPassword] = useState('');
   const [newUsername, setNewUsername] = useState('');
   const [newEmail, setNewEmail] = useState('');
+  const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
   const [notification, setNotification] = useState<{type: 'error'|'success', msg: string} | null>(null);
   const [marketColors, setMarketColors] = useState<Record<string, string>>({});
   
@@ -579,31 +580,24 @@ export default function Dashboard() {
     }
   };
 
-  const handleUpdateEmail = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanEmail = email.trim();
-
-    if (!cleanEmail) return notify('error', 'Email cannot be empty.');
-    
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(cleanEmail)) return notify('error', 'Please enter a valid email format.');
-
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user?.email === cleanEmail) {
-      return notify('error', 'This is already your current email address!');
-    }
-
-    const { error } = await supabase.auth.updateUser({ email: cleanEmail });
-    if (error) {
-      if (error.status === 429 || error.message.toLowerCase().includes('rate limit')) {
-        notify('error', 'Cooldown active: Please wait a few minutes before requesting another email change.');
-      } else {
-        notify('error', error.message);
-      }
-    } else {
-      setShowEmailSentModal(true);
-    }
-  };
+  const handleUpdateEmail = async () => {
+  if (!newEmail.trim()) {
+    return notify('error', 'Email cannot be empty.');
+  }
+  
+  setIsUpdatingEmail(true); // ⚡ Instantly triggers loading UI
+  
+  const { error } = await supabase.auth.updateUser({ email: newEmail });
+  
+  setIsUpdatingEmail(false); // ⚡ Turns off loading UI
+  
+  if (error) {
+    notify('error', `Failed: ${error.message}`);
+  } else {
+    notify('success', 'Email update processed!');
+    setNewEmail(''); 
+  }
+};
 
   const handleDeleteAccount = async () => {
     setDeleteError(''); // Reset any previous errors
@@ -1277,18 +1271,23 @@ export default function Dashboard() {
                   {/* Kept mb-10 */}
                   <form onSubmit={handleUpdateEmail} className="mb-10">
                     <label className={`block text-m font-bold mb-3 ${textTitle}`}>Change Email</label>
-                    <div className="flex flex-col xl:flex-row gap-4">
+                    <div className="flex gap-2">
                       <input 
-  type="email" 
-  value={newEmail}
-  onChange={(e) => setNewEmail(e.target.value)} 
-  placeholder="Enter new email address" 
-  className={`w-full border p-3 rounded-xl focus:outline-none transition-colors ${inputBg}`} 
-/>
-                      <button type="submit" className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors shadow-sm whitespace-nowrap">
-                        Update
+                      type="email" 
+                      value={newEmail}
+                      onChange={(e) => setNewEmail(e.target.value)} 
+                      placeholder="Enter new email address" 
+                      className={`flex-grow border p-3 rounded-xl focus:outline-none transition-colors ${inputBg}`} 
+                      />
+                      <button 
+                      onClick={handleUpdateEmail} 
+                      disabled={isUpdatingEmail}
+                      className={`font-bold px-6 py-3 rounded-xl transition-all ${isUpdatingEmail ? 'bg-indigo-400 cursor-wait shadow-none' : 'bg-indigo-600 hover:bg-indigo-700 active:scale-95 shadow-lg'} text-white`}
+                      >
+                      {isUpdatingEmail ? 'Sending...' : 'Update'}
                       </button>
                     </div>
+
                     <p className={`text-s font-bold mt-3 ${textMuted}`}>
                       * A verification link will be sent to your new email address to confirm the change.
                     </p>
