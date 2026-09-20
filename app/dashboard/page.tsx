@@ -507,7 +507,7 @@ export default function Dashboard() {
     if (error) {
       notify('error', error.message);
     } else { 
-      notify('success', 'Password forged successfully!'); 
+      notify('success', 'Password changed successfully!'); 
       setNewPassword(''); 
     }
   };
@@ -1416,7 +1416,7 @@ export default function Dashboard() {
               Check Your Inboxes
             </h2>
             <p className={`text-sm font-bold mb-8 ${textMuted}`}>
-              Please click on the verification links sent to <span className="text-indigo-500">BOTH</span> your old and new emails to ensure the email update.
+              Please click on <span className="text-indigo-500">BOTH</span> the verification links sent to your old and new emails to ensure the email update.
             </p>
             <button 
               onClick={() => setShowEmailSentModal(false)}
