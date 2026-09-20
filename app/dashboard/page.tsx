@@ -32,7 +32,6 @@ function formatDateLabel(offset: number) {
   d.setDate(d.getDate() + offset);
   const day = d.getDate();
   
-  // ⚡ Set to 'long' for full month names (e.g., "September" instead of "Sep")
   const month = d.toLocaleString('en-US', { month: 'long' });
   const dateStr = `${getOrdinalNum(day)} ${month}`;
 
@@ -40,7 +39,6 @@ function formatDateLabel(offset: number) {
   if (offset === -1) return `Yesterday - ${dateStr}`;
   if (offset === 1) return `Tomorrow - ${dateStr}`;
   
-  // ⚡ Set to 'long' for full weekday names (e.g., "Wednesday" instead of "Wed")
   const weekday = d.toLocaleString('en-US', { weekday: 'long' });
   return `${weekday} - ${dateStr}`;
 }
@@ -85,7 +83,6 @@ const UserAvatar = ({ user, size = 'w-12 h-12', text = 'text-2xl', isDark = true
   return (
     <div className={`relative flex items-center justify-center shrink-0 ${size} ${spacing} ${!isDark ? 'light-mode-vfx' : ''}`} style={{ '--bColor': bColor, '--innerBg': innerBg, '--starColor': starColor } as any}>
       
-      {/* 💥 ADVANCED VFX LAYERS - BACKGROUND 💥 */}
       {borderId === 'flow' && (
         <div className="fx-layer fx-flow">
           <div className="flow-line l1"></div><div className="flow-line l2"></div><div className="flow-line l3"></div>
@@ -143,12 +140,10 @@ const UserAvatar = ({ user, size = 'w-12 h-12', text = 'text-2xl', isDark = true
         </div>
       )}
 
-      {/* 🌑 ADD THIS NEW BLOCK HERE 🌑 */}
       {['flow', 'arc-flow', 'shooting-stars'].includes(borderId) && (
         <div className="absolute w-full h-full bg-black rounded-full z-[5] shadow-[0_0_10px_rgba(0,0,0,0.8)]"></div>
       )}
 
-      {/* CORE AVATAR CONTAINER */}
       <div className={`avatar-core flex items-center justify-center ${text} ${isStandardBorder ? `border-${borderId}` : 'vfx-core-clip'} ${!isDark && isStandardBorder ? 'shadow-lg' : ''}`}>
         <div className={borderData.includes('rotate-12') ? 'rotate-12' : ''}>{user?.avatar || '👤'}</div>
       </div>
@@ -167,7 +162,7 @@ export default function Dashboard() {
   const [lastGoldReward, setLastGoldReward] = useState(0);
   
   const [showEmailSentModal, setShowEmailSentModal] = useState(false);
-  const [showDeletePassword, setShowDeletePassword] = useState(false); // Controls the eye icon
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
   const [showDeletedConfirmation, setShowDeletedConfirmation] = useState(false);
 
   const [newPassword, setNewPassword] = useState('');
@@ -179,33 +174,25 @@ export default function Dashboard() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isLeaderboardCollapsed, setIsLeaderboardCollapsed] = useState(false);
 
-  // NEW HOOKS FOR DELETE MODAL
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteError, setDeleteError] = useState('');
 
   const scrollRef = useRef<HTMLDivElement>(null);
-  const isScrollingRef = useRef(false);
-  const scrollAccumulator = useRef(0);
-  const scrollTimer = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
-
-// 📅 TIME TRAVEL HOOKS
   const [dateOffset, setDateOffset] = useState(0);
 
- const currentTargetDate = getDateString(dateOffset);
+  const currentTargetDate = getDateString(dateOffset);
   
   const displayedTasks = tasks.filter(t => {
-    // ⚡ BULLETPROOF FILTER: Grabs the date whether it's a Date type, Timestamp, or fallback
     const rawDate = t.task_date || t.created_at || getDateString(0);
-    const cleanDate = rawDate.split('T')[0]; // Forces it to purely 'YYYY-MM-DD'
+    const cleanDate = rawDate.split('T')[0];
     return cleanDate === currentTargetDate;
   });
   
   const uncompletedCount = displayedTasks.filter(t => !t.completed).length;
 
   const handleReorderTasks = (newOrder: any[]) => {
-    // Only reorder the tasks for THIS specific day, leaving other days alone
     const otherTasks = tasks.filter(t => !displayedTasks.find(dt => dt.id === t.id));
     setTasks([...otherTasks, ...newOrder]);
   };
@@ -232,66 +219,20 @@ export default function Dashboard() {
     const storedTheme = localStorage.getItem('rpg-theme') as 'dark' | 'light';
     if (storedTheme) setTheme(storedTheme);
 
-    // 1. First get the cached session so we can block unauthenticated users immediately
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) return router.replace('/');
-      
-      // 2. ⚡ NEW: Force a network request to get the absolute latest user data from the server
-      const { data: { user }, error } = await supabase.auth.getUser();
-      
-      if (user && !error) {
-        // Set everything using the freshest server data
-        setEmail(user.email || '');
-        fetchProfile(user);
-        fetchTasks(user.id);
-      } else {
-        // Fallback to cached session just in case the network request fails
-        setEmail(session.user.email || '');
-        fetchProfile(session.user);
-        fetchTasks(session.user.id);
-      }
-      
-      fetchLeaderboard();
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session) {
-        router.replace('/');
-      } else if (event === 'USER_UPDATED' || event === 'SIGNED_IN') {
-        setEmail(session.user.email || '');
-      }
-    });
-    
-    return () => subscription.unsubscribe();
-  }, [router]);
-
-  useEffect(() => {
-    const storedTheme = localStorage.getItem('rpg-theme') as 'dark' | 'light';
-    if (storedTheme) setTheme(storedTheme);
-
     const checkAuth = async () => {
-      // 1. Check local session
       const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        return router.replace('/'); // Kick out if not logged in
-      }
+      if (!session) return router.replace('/');
 
-      // 2. Fetch fresh user data directly from server to prevent cache tricks
       const { data: { user }, error } = await supabase.auth.getUser();
       const currentUser = user || session.user;
 
-      // 3. ⚡ HARD BLOCK: Check for email confirmation timestamp ⚡
       if (currentUser && !currentUser.email_confirmed_at) {
-        // Destroy the unauthorized session
         await supabase.auth.signOut();
-        // Native alert to ensure they see it before redirect
         alert("⚠️ Verification required! Please click the link sent to your email before entering the realm.");
         router.replace('/');
-        return; // EXIT FUNCTION: fetchProfile is never called!
+        return;
       }
 
-      // 4. If they pass the lock, load the realm safely
       setEmail(currentUser.email || '');
       fetchProfile(currentUser);
       fetchTasks(currentUser.id);
@@ -300,7 +241,6 @@ export default function Dashboard() {
 
     checkAuth();
 
-    // 5. Background listener for when they change their email later
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!session) {
         router.replace('/');
@@ -339,15 +279,12 @@ export default function Dashboard() {
       if (data) {
         let currentStreak = data.streak_count || 0;
         
-        // ⚡ THE FIX: 0 XP = 0 Tasks Completed = 0 Streak. Period.
         if (data.current_xp === 0) {
           currentStreak = 0;
-          // Clean up the database silently if it defaulted to 1
           if (data.streak_count !== 0) {
             await supabase.from('profiles').update({ streak_count: 0 }).eq('id', userId);
           }
         } 
-        // Standard reset logic for returning players
         else if (data.last_active_date) {
           const todayIST = getISTDayNumber(Date.now());
           const lastActiveIST = getISTDayNumber(new Date(data.last_active_date).getTime());
@@ -412,16 +349,13 @@ export default function Dashboard() {
     
     const targetDate = getDateString(dateOffset);
     
-    // First, try saving with the custom date
     let { data, error } = await supabase
       .from('tasks')
       .insert([{ user_id: profile.id, title: newTaskInput, difficulty, xp, completed: false, task_date: targetDate }])
       .select()
       .maybeSingle();
 
-    // ⚡ FALLBACK: If Supabase throws an error because the task_date column is missing, save it normally without the date
     if (error && error.message.includes('task_date')) {
-      console.warn("task_date column missing! Saving without custom date.");
       const fallbackResponse = await supabase
         .from('tasks')
         .insert([{ user_id: profile.id, title: newTaskInput, difficulty, xp, completed: false }])
@@ -438,8 +372,6 @@ export default function Dashboard() {
     }
     
     if (data) {
-      // Manually attach the target date to the local state so it instantly shows up on the screen,
-      // even if the database fallback above didn't save it to the DB!
       const newTask = { ...data, task_date: data.task_date || targetDate };
       setTasks([newTask, ...tasks]);
       setNewTaskInput('');
@@ -475,10 +407,9 @@ export default function Dashboard() {
       newGold += goldReward;
       setLastGoldReward(goldReward);
       
-      // EPIC GOLD CONFETTI CANNONS (WIDER SPREAD)
       const duration = 2500;
       const end = Date.now() + duration;
-      const colors = ['#fde047', '#fbbf24', '#f59e0b', '#ffffff']; // Gold & White
+      const colors = ['#fde047', '#fbbf24', '#f59e0b', '#ffffff']; 
       
       (function frame() {
         confetti({ 
@@ -506,27 +437,23 @@ export default function Dashboard() {
       setTimeout(() => setShowLevelUp(false), 3500);
     }
 
-    // ⚡ NEW STREAK LOGIC
     const todayIST = getISTDayNumber(Date.now());
     let newStreak = profile.streak_count || 0;
     
-    // If it's their very first task ever
     if (profile.current_xp === 0) {
       newStreak = 1; 
     } 
-    // If they have played before
     else if (profile.last_active_date) {
       const lastActiveIST = getISTDayNumber(new Date(profile.last_active_date).getTime());
       const dayDiff = todayIST - lastActiveIST;
       
       if (dayDiff === 1) {
-        newStreak += 1; // Next day = streak up!
+        newStreak += 1;
       } else if (dayDiff > 1) {
-        newStreak = 1; // Missed a day = streak resets to 1
+        newStreak = 1;
       } else if (dayDiff === 0 && newStreak === 0) {
-        newStreak = 1; // Edge case catch
+        newStreak = 1;
       }
-      // If dayDiff === 0 and newStreak > 0, it stays exactly the same (multiple tasks today)
     } else {
       newStreak = 1;
     }
@@ -554,8 +481,17 @@ export default function Dashboard() {
     const cleanName = newUsername.trim();
     if (!cleanName) return notify('error', 'Player name cannot be empty.');
     if (cleanName === profile.username) return notify('error', 'That is already your current name!');
+    
     const { error } = await supabase.from('profiles').update({ username: cleanName }).eq('id', profile.id);
-    if (error) return notify('error', error.message);
+    
+    if (error) {
+      // Check for Postgres Unique Constraint Violation (Error Code 23505) or duplicate messages
+      if (error.code === '23505' || error.message.toLowerCase().includes('duplicate') || error.message.toLowerCase().includes('already exists')) {
+        return notify('error', 'This username is already taken by another legend!');
+      }
+      return notify('error', error.message);
+    }
+    
     setProfile({ ...profile, username: cleanName });
     notify('success', 'Legendary name updated successfully!');
     fetchLeaderboard();
@@ -565,8 +501,12 @@ export default function Dashboard() {
     e.preventDefault();
     if (newPassword.length < 6) return notify('error', 'Password must be at least 6 characters.');
     const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) notify('error', error.message);
-    else { notify('success', 'Password forged successfully!'); setNewPassword(''); }
+    if (error) {
+      notify('error', error.message);
+    } else { 
+      notify('success', 'Password forged successfully!'); 
+      setNewPassword(''); 
+    }
   };
 
   const handleUpdateEmail = async (e: React.FormEvent) => {
@@ -596,13 +536,12 @@ export default function Dashboard() {
   };
 
   const handleDeleteAccount = async () => {
-    setDeleteError(''); // Reset any previous errors
+    setDeleteError(''); 
     
     if (!deletePassword) {
       return setDeleteError('Password is required.');
     }
 
-    // 1. Verify the password securely against Supabase
     const { error: verifyError } = await supabase.auth.signInWithPassword({
       email: email, 
       password: deletePassword
@@ -612,7 +551,6 @@ export default function Dashboard() {
       return setDeleteError('Incorrect password. Please try again.');
     }
 
-    // 2. Proceed with permanent deletion
     const { error } = await supabase.rpc('delete_user');
     
     if (error) {
@@ -667,11 +605,9 @@ export default function Dashboard() {
   const isDark = theme === 'dark';
   const mainBg = isDark ? "bg-[#0a0f1c]" : "bg-slate-50";
 
-  // 🎨 CUSTOM DARK MODE BOX COLORS (Change these Hex Codes to adjust the gray/black!)
-  // #000000 is pure black, #38373a is medium gray.
-  const darkBox = "bg-[#0b1121]/96";   // Large panels (Sidebar, Main Cards)
-  const darkInner = "bg-[#1e293b]/100"; // Inner items (Tasks, Stats, Leaderboard)
-  const darkInput = "bg-[#1e293b]/98"; // Typing fields
+  const darkBox = "bg-[#0b1121]/96";   
+  const darkInner = "bg-[#1e293b]/100"; 
+  const darkInput = "bg-[#1e293b]/98"; 
   
   const sidebarBg = isDark ? `${darkBox} backdrop-blur-md border-white/10 shadow-2xl` : "bg-white border-slate-300 shadow-xl";
   const cardBg = isDark ? `${darkBox} backdrop-blur-md border-white/10 text-white shadow-2xl` : "bg-white border-slate-300 text-slate-900 shadow-xl";
@@ -687,6 +623,29 @@ export default function Dashboard() {
   return (
     <div className={`min-h-screen flex flex-col md:flex-row font-sans relative overflow-x-hidden bg-cover bg-center bg-fixed transition-all duration-700 ${isDark ? "bg-[#0a0f1c] bg-[url('/bg-dark.jpg')]" : "bg-slate-50 bg-[url('/bg-light.jpg')]"}`}>
       
+      {/* 🚀 NEW: GLOBAL TOAST NOTIFICATIONS */}
+      <AnimatePresence>
+        {notification && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            className={`fixed top-6 left-1/2 -translate-x-1/2 z-[9999] px-6 py-4 rounded-2xl border shadow-2xl flex items-center gap-3 backdrop-blur-md ${
+              notification.type === 'error'
+                ? 'bg-red-950/90 border-red-500/50 text-red-200'
+                : 'bg-emerald-950/90 border-emerald-500/50 text-emerald-200'
+            }`}
+          >
+            <span className="text-2xl">
+              {notification.type === 'error' ? '⚠️' : '✨'}
+            </span>
+            <span className="font-bold text-sm md:text-base tracking-wide">
+              {notification.msg}
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className={`fixed top-4 right-4 z-[100] flex items-center p-1 rounded-full shadow-2xl border transition-all ${isDark ? 'bg-slate-800 border-slate-600' : 'bg-white border-slate-300'}`}>
         <button onClick={() => changeTheme('light')} className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${!isDark ? 'bg-amber-100 shadow-md text-amber-500 scale-110' : 'text-slate-400 hover:text-slate-200'}`}>☀️</button>
         <button onClick={() => changeTheme('dark')} className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isDark ? 'bg-slate-900 shadow-md text-blue-300 scale-110' : 'text-slate-500 hover:text-slate-800'}`}>🌙</button>
@@ -697,7 +656,6 @@ export default function Dashboard() {
         .hide-scroll::-webkit-scrollbar-thumb { background-color: rgba(150, 150, 150, 0.6); border-radius: 10px; border: 2px solid transparent; background-clip: padding-box; }
         .hide-scroll:hover::-webkit-scrollbar-thumb { background-color: rgba(150, 150, 150, 0.8); }
         
-        /* AVATAR CORE SYSTEM */
         .avatar-core { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; z-index: 10; box-sizing: border-box; border-radius: inherit; }
         .vfx-core-clip { border-radius: 50%; background: transparent; position: relative; z-index: 10; display: flex; align-items: center; justify-content: center; }
         .fx-layer { position: absolute; z-index: 1; pointer-events: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
@@ -706,14 +664,12 @@ export default function Dashboard() {
         @keyframes spinLeft { 100% { transform: rotate(-360deg); } }
         @keyframes pulseGlow { 0% { box-shadow: 0 0 10px var(--bColor); } 100% { box-shadow: 0 0 30px var(--bColor), inset 0 0 15px var(--bColor); } }
         
-        /* BASIC BORDERS */
         .border-stone-circle { border: 3px solid #475569; border-radius: 50%; background: var(--innerBg); }
         .border-squire-square { border: 3px solid var(--bColor); border-radius: 20%; background: var(--innerBg); }
         .border-mystic-ring { border: 3px solid var(--bColor); border-radius: 50%; box-shadow: 0 0 15px var(--bColor), inset 0 0 10px var(--bColor); background: var(--innerBg); }
         .border-knight-shield { border: 3px solid var(--bColor); border-radius: 10% 10% 50% 50% / 10% 10% 40% 40%; box-shadow: 0 5px 15px var(--bColor); background: var(--innerBg); }
         .border-celestial-ring { border: 3px solid var(--bColor); border-radius: 50%; box-shadow: 0 0 20px var(--bColor); animation: pulseGlow 1.5s infinite alternate ease-in-out; background: var(--innerBg); }
         
-        /* 1. FLOW (High Speed Gradient Lines) */
         .fx-flow { width: 180%; height: 180%; overflow: hidden; }
         .flow-line { position: absolute; height: 3px; background: linear-gradient(90deg, transparent, var(--bColor), transparent); border-radius: 50%; animation: flyRight 2.5s linear infinite; opacity: 0.9; left: -100%; }
         .l1 { top: 15%; width: 50%; animation-duration: 2.2s; animation-delay: 0.1s; }
@@ -728,7 +684,6 @@ export default function Dashboard() {
         .l10 { top: 90%; width: 65%; animation-duration: 2.5s; animation-delay: 0.2s; }
         @keyframes flyRight { 0% { left: -80%; } 100% { left: 180%; } }
 
-        /* 2. ARC FLOW (Multiple rotating arcs) */
         .fx-arc-flow { width: 150%; height: 150%; z-index: 12; overflow: visible; }
         .arc { position: absolute; border-radius: 50%; border: solid transparent; }
         .a1 { width: 100%; height: 100%; border-width: 2px; border-top-color: #3b82f6; animation: spinRight 3.5s linear infinite; }
@@ -740,7 +695,6 @@ export default function Dashboard() {
         .a7 { width: 70%; height: 70%; border-width: 3px; border-bottom-color: #ef4444; animation: spinRight 3.1s linear infinite; }
         .a8 { width: 140%; height: 140%; border-width: 1px; border-top-color: #6366f1; border-right-color: #6366f1; animation: spinLeft 4.5s linear infinite; }
 
-        /* 3. SHOOTING STARS (Tail inversion fix) */
         .fx-shooting-stars { width: 200%; height: 200%; overflow: hidden; }
         .meteor { position: absolute; width: 40px; height: 4px; background: linear-gradient(to right, transparent, var(--starColor)); transform: rotate(135deg); animation: meteorFall 2s infinite linear; opacity: 0; }
         .m1 { top: 0%; left: 80%; animation-delay: 0s; animation-duration: 2.2s; }
@@ -757,13 +711,11 @@ export default function Dashboard() {
         .m12 { top: -30%; left: 80%; animation-delay: 1s; animation-duration: 2.3s; }
         @keyframes meteorFall { 0% { transform: translate(150px, -150px) rotate(135deg); opacity: 1; } 100% { transform: translate(-200px, 200px) rotate(135deg); opacity: 0; } }
 
-        /* 4. BLACK HOLE (Solid Revolving Ring) */
         .fx-black-hole-back { position: absolute; z-index: 1; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
         .bh-photon-ring { position: absolute; width: 220%; height: 220%; border-radius: 50%; border: 12px solid rgba(255, 237, 213, 0.95); box-shadow: -15px 15px 35px #ea580c, 15px -15px 35px #ea580c, inset 0 0 20px #ea580c; z-index: 2; animation: revolveBH 3s linear infinite; }
         .bh-shadow { position: absolute; width: 105%; height: 105%; border-radius: 50%; background: #000; box-shadow: 0 0 25px 8px #ea580c; z-index: 3; }
         @keyframes revolveBH { 0% { transform: rotateX(72deg) rotateY(15deg) rotateZ(0deg); } 100% { transform: rotateX(72deg) rotateY(15deg) rotateZ(360deg); } }
 
-        /* 5. DISC (Scaled Down, Flat & Realistic) */
         .fx-disc { position: absolute; z-index: 1; width: 120%; height: 120%; display: flex; align-items: center; justify-content: center; }
         .disc-core { position: absolute; width: 80%; height: 80%; border-radius: 50%; background: #000; box-shadow: 0 0 15px 3px rgba(168, 85, 247, 0.6); z-index: 3; }
         .disc-dust { position: absolute; width: 140%; height: 140%; border-radius: 50%; background: radial-gradient(circle, rgba(79, 70, 229, 0.4) 10%, rgba(30, 58, 138, 0.6) 40%, transparent 70%); z-index: 1; animation: pulseGlow 5s infinite alternate; }
@@ -772,26 +724,17 @@ export default function Dashboard() {
         .disc-arm-2 { width: 110%; height: 110%; background: conic-gradient(from 90deg, transparent 0%, rgba(236, 72, 153, 0.7) 15%, transparent 35%, transparent 50%, rgba(59, 130, 246, 0.7) 65%, transparent 85%); animation: spinRight 14s linear infinite; }
         .disc-arm-3 { width: 105%; height: 105%; border: 2px dotted rgba(255, 255, 255, 0.5); filter: blur(1px); animation: spinLeft 25s linear infinite; opacity: 0.6; z-index: 2; }
 
-        /* 6. NEBULA (Quantum Atom Structure - 5 Electrons) */
         .fx-nebula { position: absolute; z-index: 1; width: 230%; height: 230%; display: flex; align-items: center; justify-content: center; }
-        
-        /* Avatar Protector (Locks them behind the face) */
         .neb-black-core { position: absolute; width: 45.45%; height: 45.45%; background: #000; border-radius: 50%; z-index: 5; box-shadow: 0 0 25px 8px rgba(20, 184, 166, 0.4), inset 0 0 10px rgba(20, 184, 166, 0.8); } 
-
-        /* Cloud Size (Currently set to 140% width and 120% height) */
         .neb-cloud { position: absolute; width: 145%; height: 145%; border-radius: 40% 60% 55% 45%; background: radial-gradient(ellipse at center, rgba(20, 184, 166, 0.45) 35%, transparent 60%); z-index: 1; animation: spinRight 6s linear infinite; filter: blur(6px); }
-
-        /* Orbit Size (Currently 95%) and Color */
         .neb-orbit { position: absolute; width: 90%; height: 90%; border-radius: 50%; border: 2px solid hsla(173, 80%, 40%, 0.96); box-shadow: inset 0 0 10px rgba(20, 184, 166, 0.3), 0 0 10px rgba(20, 184, 166, 0.3); transform-style: preserve-3d; z-index: 2; }
         
-        /* Restored Evenly Spaced 3D Orbit Angles */
         .neb-o1 { transform: rotateX(75deg) rotateY(0deg); }
         .neb-o2 { transform: rotateX(75deg) rotateY(36deg); }
         .neb-o3 { transform: rotateX(75deg) rotateY(72deg); }
         .neb-o4 { transform: rotateX(75deg) rotateY(108deg); }
         .neb-o5 { transform: rotateX(75deg) rotateY(144deg); }
 
-        /* Spinners with negative delays so electrons start at different positions */
         .neb-spinner { position: absolute; width: 100%; height: 100%; border-radius: 50%; transform-style: preserve-3d; }
         .neb-s1 { animation: spin-electron 3.2s linear infinite; animation-delay: 0s; }
         .neb-s2 { animation: spin-electron 4.1s linear infinite reverse; animation-delay: -1.5s; }
@@ -799,12 +742,9 @@ export default function Dashboard() {
         .neb-s4 { animation: spin-electron 4.5s linear infinite reverse; animation-delay: -0.8s; }
         .neb-s5 { animation: spin-electron 3.9s linear infinite; animation-delay: -2.4s; }
 
-        /* Perfectly Circular Yellow Electrons (Transform removed, using calc() instead) */
         .neb-electron { position: absolute; top: -7px; left: calc(50% - 7px); width: 12px; height: 12px; background: #dff136f8; border-radius: 50%; box-shadow: 0 0 8px 2px rgba(253, 224, 71, 1), 0 0 15px 6px rgba(253, 224, 71, 0.5); }
-
         @keyframes spin-electron { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(360deg); } }
 
-        /* 7. MAJESTIC (Wormhole Waves) */
         .fx-majestic { position: absolute; z-index: 1; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
         .wh-hole { position: absolute; width: 100%; height: 100%; background: #000; border-radius: 50%; z-index: 3; box-shadow: 0 0 20px 4px rgba(6, 182, 212, 0.8); }
         .wh-wave { position: absolute; width: 100%; height: 100%; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 15px 5px #06b6d4, inset 0 0 10px #06b6d4; opacity: 0; z-index: 2; animation: wh-radiate 3s infinite linear; }
@@ -813,13 +753,11 @@ export default function Dashboard() {
         .wh-w3 { animation-delay: 1.2s; } 
         .wh-w4 { animation-delay: 1.8s; } 
         .wh-w5 { animation-delay: 2.4s; }
-        /* ADJUST SPREAD DISTANCE HERE: Change scale(3.5) to a larger/smaller number */
         @keyframes wh-radiate { 
           0% { transform: scale(0.45); opacity: 1; border-width: 4px; } 
           100% { transform: scale(2.3); opacity: 0; border-width: 1px; } 
         }
 
-        /* 8. LEVEL UP RAYS */
         @keyframes spinSlow { 100% { transform: rotate(360deg); } }
         .level-up-rays { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 200%; height: 200%; background: repeating-conic-gradient(from 0deg, transparent 0deg, rgba(250, 204, 21, 0.4) 15deg, transparent 30deg); animation: spinSlow 15s linear infinite; pointer-events: none; }
         .mask-radial-fade { -webkit-mask-image: radial-gradient(circle, black 20%, transparent 70%); mask-image: radial-gradient(circle, black 20%, transparent 70%); }
@@ -835,7 +773,6 @@ export default function Dashboard() {
             transition={{ duration: 0.3 }} 
             className="fixed inset-0 pointer-events-none z-[500] flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm"
           >
-            {/* Clean, Premium Banner (No extra light rays or heavy glow) */}
             <motion.div 
               initial={{ scale: 0.5, y: 100, opacity: 0 }} 
               animate={{ scale: 1, y: 0, opacity: 1 }} 
@@ -843,7 +780,6 @@ export default function Dashboard() {
               transition={{ type: "spring", damping: 14, stiffness: 200 }} 
               className="relative z-10 flex flex-col items-center"
             >
-              {/* Floating Star Emblem - Clean shadow */}
               <motion.div 
                 animate={{ y: [-8, 8, -8] }} 
                 transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
@@ -852,7 +788,6 @@ export default function Dashboard() {
                 ⭐
               </motion.div>
 
-              {/* Main Card Box - Solid & Elegant */}
               <div className={`relative px-12 md:px-20 pt-14 pb-10 rounded-[2.5rem] border-2 overflow-hidden text-center shadow-2xl ${isDark ? 'bg-slate-900 border-yellow-500' : 'bg-white border-yellow-400'}`}>
                 
                 <h1 className="text-6xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-400 to-yellow-600 drop-shadow-sm tracking-tight mb-3">
@@ -879,14 +814,12 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      {/* --- SIDEBAR MENU --- */}
       <div className={`border-b md:border-b-0 md:border-r p-6 flex flex-col z-40 shrink-0 transition-all duration-500 relative ${sidebarBg} ${isSidebarCollapsed ? 'w-full md:w-28 items-center' : 'w-full md:w-72'}`}>
         
         <button onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} className={`hidden md:flex absolute -right-4 top-8 w-8 h-8 rounded-full border shadow-md items-center justify-center font-bold z-50 transition-colors ${isDark ? 'bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-100'}`}>
           {isSidebarCollapsed ? '❯' : '❮'}
         </button>
 
-        {/* PROFILE PICTURE & STATS (Centered) */}
         <div className={`mb-8 hidden md:flex flex-col items-center transition-all w-full ${isSidebarCollapsed ? 'mt-12' : 'mt-16'}`}>
           
           <div className={`${isSidebarCollapsed ? 'mb-8' : 'mb-16'}`}>
@@ -914,7 +847,6 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* NAVIGATION BUTTONS */}
         <nav className={`flex md:flex-col gap-3 overflow-x-auto md:overflow-visible w-full ${isSidebarCollapsed ? 'items-center' : ''}`}>
           <button onClick={() => setActiveTab('quests')} title="Quests & Board" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all whitespace-nowrap ${activeTab === 'quests' ? activeTabClass : inactiveTabClass} ${isSidebarCollapsed ? 'justify-center w-14 h-14 px-0' : 'w-full'}`}>
             <span className="text-xl shrink-0">⚔️</span>{!isSidebarCollapsed && <span>Quests & Board</span>}
@@ -927,7 +859,6 @@ export default function Dashboard() {
           </button>
         </nav>
 
-        {/* SIGN OUT BUTTON */}
         <div className="mt-auto hidden md:flex flex-col w-full pt-10">
           <button onClick={async () => await supabase.auth.signOut()} title="Sign out" className={`w-full flex items-center justify-center gap-2 text-sm bg-red-500/10 text-red-500 border border-red-500/20 py-3 rounded-xl hover:bg-red-500 hover:text-white transition-all font-bold ${isSidebarCollapsed ? 'px-0 w-14 h-14 mx-auto' : 'px-4'}`}>
             {!isSidebarCollapsed && <span>Sign out</span>}
@@ -942,41 +873,30 @@ export default function Dashboard() {
           {activeTab === 'quests' && (
             <motion.div initial={{opacity:0, y:10}} animate={{opacity:1, y:0}}>
                 
-              {/* 🌟 HERO SECTION: USERNAME & PROGRESS BAR (Locked to 1200px max-width) */}
               <div className="max-w-[1200px] mx-auto flex flex-col md:flex-row gap-6 mb-6">
-                {/* 🎭 STYLISH USERNAME BOX (Left Side) */}
                 <div className={`pointer-events-auto border p-6 md:px-8 rounded-2xl flex flex-col justify-center transition-colors duration-500 shrink-0 w-full md:w-[380px] ${cardBg}`}>
                   
-                  {/* Left-aligned greeting */}
                   <p className={`w-full text-left text-m font-bold tracking-widest mb-2 ${textMuted}`}>
                     Greetings,
                   </p>
                   
-                  {/* Centered Username */}
                   <h2 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 truncate w-full text-center drop-shadow-sm pb-1">
                     {profile.username}
                   </h2>
                   
-                  {/* Centered, large, borderless Streak Count */}
                   <div className="mt-3 flex justify-center w-full">
                     <div className="flex items-center gap-2 bg-orange-500/10 text-orange-500 px-4 py-2 rounded-full shadow-sm">
-                      
-                      {/* 1. THE LABEL (Smaller) */}
                       <span className="text-l font-bold opacity-90">
                         Streak Count:
                       </span>
-
-                      {/* 2. THE NUMBER & EMOJI (Larger) */}
                       <span className="text-xl sm:text-2xl font-black drop-shadow-sm">
                         {profile.streak_count}🔥
                       </span>
-                      
                     </div>
                   </div>
                   
                 </div>
 
-                {/* 📊 LEVEL PROGRESS BAR (Right Side) */}
                 <div className={`pointer-events-auto border p-6 md:p-8 rounded-2xl flex flex-col justify-center transition-colors duration-500 flex-grow ${cardBg}`}>
                   <div className="flex justify-between items-end mb-4">
                     <div className="flex items-center gap-4">
@@ -1002,13 +922,11 @@ export default function Dashboard() {
 
               </div>
 
-              {/* ⚔️ DYNAMIC FLEX CONTAINER */}
               <div 
                 style={{ maxWidth: isLeaderboardCollapsed ? '1200px' : '1624px' }} 
                 className="mx-auto flex flex-col lg:flex-row gap-6 w-full items-stretch transition-all duration-700 ease-out"
               >
                 
-                {/* ⚔️ COMPREHENSIVE QUESTS BOARD */}
                 <div className={`pointer-events-auto border p-6 md:p-8 rounded-2xl flex flex-col h-[690px] overflow-hidden ${cardBg} ${isLeaderboardCollapsed ? 'w-full' : 'w-full lg:w-auto lg:flex-grow'} transition-all duration-750 ease-out`}>
                   
                   <div className="flex justify-between items-center mb-6 shrink-0">
@@ -1038,7 +956,6 @@ export default function Dashboard() {
                     </button>
                   </form>
 
-                  {/* 📅 DATE NAVIGATION BAR */}
                   <div className={`flex justify-between items-center px-4 py-3 mb-5 rounded-xl border shrink-0 ${isDark ? 'bg-black/40 border-white/10' : 'bg-slate-100 border-slate-200'}`}>
                     <button onClick={() => setDateOffset(prev => prev - 1)} className={`p-2 rounded-lg transition-colors font-black ${isDark ? 'hover:bg-white/10 text-slate-300' : 'hover:bg-slate-200 text-slate-700'}`}>
                       &lt;
@@ -1060,7 +977,6 @@ export default function Dashboard() {
                     </button>
                   </div>
 
-                  {/* 📜 TASK LIST */}
                   <Reorder.Group axis="y" values={displayedTasks} onReorder={handleReorderTasks} className="flex-grow overflow-y-auto pr-2 space-y-3 hide-scroll internal-scroll pointer-events-auto">
                     <AnimatePresence>
                       {displayedTasks.length === 0 ? (
@@ -1085,7 +1001,6 @@ export default function Dashboard() {
                     </AnimatePresence>
                   </Reorder.Group>
                   
-                  {/* 🗑️ DELETE ALL BUTTON */}
                   {displayedTasks.length > 0 && (
                     <div className="mt-4 pt-4 border-t border-slate-200 dark:border-white/10 shrink-0">
                       <button 
@@ -1098,7 +1013,6 @@ export default function Dashboard() {
                   )}
                 </div>
 
-                {/* 🏆 HALL OF FAME BOX */}
                 <AnimatePresence initial={false}>
                   {!isLeaderboardCollapsed && (
                     <motion.div 
@@ -1116,23 +1030,20 @@ export default function Dashboard() {
                         <div className="flex-grow overflow-y-auto pr-2 space-y-3 hide-scroll internal-scroll pointer-events-auto">
                           {leaders.map((leader, index) => {
                     
-                    /* Helper logic for Rank Colors */
                     let rankColorClass = textMuted; 
-                    if (index === 0) rankColorClass = 'text-yellow-200 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]'; // Gold
-                    else if (index === 1) rankColorClass = 'text-slate-199 drop-shadow-[0_0_8px_rgba(148,163,184,0.5)]'; // Silver
-                    else if (index === 2) rankColorClass = 'text-amber-600 drop-shadow-[0_0_8px_rgba(180,83,9,0.5)]'; // Bronze
+                    if (index === 0) rankColorClass = 'text-yellow-500 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]';
+                    else if (index === 1) rankColorClass = 'text-slate-199 drop-shadow-[0_0_8px_rgba(148,163,184,0.5)]'; 
+                    else if (index === 2) rankColorClass = 'text-amber-600 drop-shadow-[0_0_8px_rgba(180,83,9,0.5)]'; 
 
                     return (
                       <div key={index} className={`relative overflow-hidden flex items-center justify-between px-5 py-6 rounded-xl border transition-colors mb-3 ${isDark ? `${darkInner} border-white/10` : 'bg-slate-50 border-slate-200'}`}>
                         
                         <div className="flex items-center z-10 min-w-0 flex-grow">
                           
-                          {/* --- 2. RANK NUMBER (Now with dynamic color) --- */}
                           <span className={`text-xl font-black w-20 shrink-0 ${rankColorClass}`}>
                             #{index + 1}
                           </span>
                           
-                          {/* --- 3. PROFILE PICTURE (Avatar + Border) --- */}
                           <UserAvatar 
                             user={leader} 
                             size="w-14 h-14" 
@@ -1141,7 +1052,6 @@ export default function Dashboard() {
                             isDark={isDark} 
                           />
                           
-                          {/* --- 4. USER DETAILS (Username, Level, XP) in the middle --- */}
                           <div className="flex flex-col justify-center min-w-0 mr-4">
                             <p className={`font-bold text-base truncate ${textTitle}`}>{leader.username}</p>
                             
@@ -1157,7 +1067,6 @@ export default function Dashboard() {
                           
                         </div>
 
-                        {/* --- 5. RIGHT SIDE (Streak Count) --- */}
                         <div className="flex flex-col items-end justify-center z-10 shrink-0 ml-2">
                           <span className="text-sm sm:text-base font-black bg-orange-500/10 text-orange-500 px-3 py-1.5 rounded-lg border border-orange-500/20 whitespace-nowrap shadow-sm">
                             {leader.streak_count} 🔥
@@ -1180,19 +1089,16 @@ export default function Dashboard() {
           )}
 
           {activeTab === 'profile' && (
-            /* 1. MOVED DOWN: Added pt-12 (padding-top) and changed justify-start to push it down from the top */
             <div className="flex flex-col justify-start pt-12 min-h-[85vh] w-full pb-12">
               
               <div className="w-full max-w-[1400px] mx-auto flex flex-col lg:flex-row items-stretch gap-8 w-full">
                 
-                {/* LEFT PANE */}
                 <div className={`pointer-events-auto border p-8 md:p-10 rounded-3xl flex flex-col items-center shrink-0 w-full lg:w-[480px] min-h-[750px] shadow-lg transition-colors duration-500 ${cardBg}`}>
                   
                   <h3 className={`w-full text-left text-l font-bold uppercase tracking-widest mb-16 ${textMuted}`}>
                     Current Profile
                   </h3>
 
-                  {/* 2. ADJUSTED PP DISTANCE: Increased mb-12 (bottom margin) and mt-8 (top margin) */}
                   <div className="mb-20 mt-8">
                     <UserAvatar user={profile} size="w-40 h-40" text="text-7xl" isDark={isDark} />
                   </div>
@@ -1200,7 +1106,6 @@ export default function Dashboard() {
                   <h2 className={`text-3xl font-black truncate w-full text-center mt-2 ${textTitle}`}>
                     {profile.username}
                   </h2>
-                  {/* Adjusted margin below level to balance the new PP spacing */}
                   <p className={`text-base font-bold mb-10 uppercase tracking-wide mt-2 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
                     Level {profile.level} Hero
                   </p>
@@ -1222,15 +1127,12 @@ export default function Dashboard() {
 
                 </div>
 
-                {/* RIGHT PANE */}
                 <div className={`pointer-events-auto border p-8 md:p-10 rounded-3xl flex flex-col flex-grow shadow-lg w-full min-h-[750px] transition-colors duration-500 ${cardBg}`}>
                   
-                  {/* 3. PUSHED FORMS DOWN: Increased mb-16 to push the first form further down */}
                   <h3 className={`w-full text-left text-l font-bold uppercase tracking-widest mb-16 ${textMuted}`}>
                     Account Settings
                   </h3>
 
-                  {/* Increased mb-10 to spread out the forms and reduce the empty space before Danger Zone */}
                   <form onSubmit={handleUpdateUsername} className="mb-10">
                     <label className={`block text-m font-bold mb-3 ${textTitle}`}>Change Username</label>
                     <div className="flex flex-col xl:flex-row gap-4">
@@ -1247,7 +1149,6 @@ export default function Dashboard() {
                     </div>
                   </form>
 
-                  {/* Increased mb-10 */}
                   <form onSubmit={handleUpdatePassword} className="mb-10">
                     <label className={`block text-m font-bold mb-3 ${textTitle}`}>Change Password</label>
                     <div className="flex flex-col xl:flex-row gap-4">
@@ -1264,7 +1165,6 @@ export default function Dashboard() {
                     </div>
                   </form>
 
-                  {/* Kept mb-10 */}
                   <form onSubmit={handleUpdateEmail} className="mb-10">
                     <label className={`block text-m font-bold mb-3 ${textTitle}`}>Change Email</label>
                     <div className="flex flex-col xl:flex-row gap-4">
@@ -1284,7 +1184,6 @@ export default function Dashboard() {
                     </p>
                   </form>
                   
-                  {/* Danger Zone */}
                   <div className="mt-auto pt-8 border-t border-slate-200 dark:border-slate-700">
                      <label className="block text-l font-bold mb-4 uppercase tracking-widest text-red-500">
                        Danger Zone
@@ -1311,7 +1210,6 @@ export default function Dashboard() {
               </div>
 
               <div className="pointer-events-auto">
-                {/* AVATARS HEADER BOX */}
                 <div className="w-full flex justify-center md:justify-start mb-6">
                   <div className={`px-8 py-3 rounded-xl border shadow-sm flex items-center justify-center backdrop-blur-sm ${isDark ? 'bg-indigo-500/45 border-indigo-500/40' : 'bg-indigo-200 border-indigo-400'}`}>
                     <h3 className={`text-xl md:text-2xl font-black uppercase tracking-widest ${isDark ? 'text-indigo-300' : 'text-indigo-900'}`}>
@@ -1341,7 +1239,6 @@ export default function Dashboard() {
               </div>
 
               <div className="pointer-events-auto">
-                {/* ✨ BORDERS HEADER BOX */}
                 <div className="w-full flex justify-center md:justify-start mt-12 mb-6">
                   <div className={`px-8 py-3 rounded-xl border shadow-sm flex items-center justify-center backdrop-blur-sm ${isDark ? 'bg-indigo-500/45 border-indigo-500/40' : 'bg-indigo-200 border-indigo-400'}`}>
                     <h3 className={`text-xl md:text-2xl font-black uppercase tracking-widest ${isDark ? 'text-indigo-300' : 'text-indigo-900'}`}>
@@ -1383,7 +1280,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-          {/* ☠️ LEGEND DELETED CONFIRMATION MODAL */}
       {showDeletedConfirmation && (
         <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md pointer-events-auto">
           <div className={`w-full max-w-md p-6 md:p-8 rounded-3xl shadow-2xl border flex flex-col items-center text-center ${isDark ? 'bg-slate-900 border-red-900/50' : 'bg-white border-red-200'}`}>
@@ -1398,7 +1294,6 @@ export default function Dashboard() {
             </p>
             <button 
               onClick={async () => {
-                // Clear the session and return to login screen
                 await supabase.auth.signOut();
                 router.replace('/');
               }}
@@ -1410,7 +1305,6 @@ export default function Dashboard() {
         </div>
       )}
 
-{/* ☠️ DELETE CHARACTER MODAL */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm pointer-events-auto">
           
@@ -1439,7 +1333,6 @@ export default function Dashboard() {
               Type your password to confirm:
             </label>
             
-            {/* INPUT WITH EYE ICON */}
             <div className="relative mb-8 w-full">
               <input 
                 type={showDeletePassword ? "text" : "password"} 
@@ -1502,7 +1395,7 @@ export default function Dashboard() {
               Check Your Inboxes
             </h2>
             <p className={`text-sm font-bold mb-8 ${textMuted}`}>
-              To complete the update, you must click <span className="text-indigo-500">BOTH</span> the verification links emailed to your old and new email addresses.
+              Please click on the verification links sent to <span className="text-indigo-500">BOTH</span> your old and new emails to ensure the email update.
             </p>
             <button 
               onClick={() => setShowEmailSentModal(false)}
@@ -1513,7 +1406,6 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-
 
     </div>
   );
