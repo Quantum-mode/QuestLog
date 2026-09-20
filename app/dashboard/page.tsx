@@ -162,7 +162,11 @@ export default function Dashboard() {
   const [lastGoldReward, setLastGoldReward] = useState(0);
   
   const [showEmailSentModal, setShowEmailSentModal] = useState(false);
-  const [showDeletePassword, setShowDeletePassword] = useState(false);
+  
+  // PASSWORD VISIBILITY STATES
+  const [showUpdatePassword, setShowUpdatePassword] = useState(false); 
+  const [showDeletePassword, setShowDeletePassword] = useState(false); 
+  
   const [showDeletedConfirmation, setShowDeletedConfirmation] = useState(false);
 
   const [newPassword, setNewPassword] = useState('');
@@ -485,7 +489,6 @@ export default function Dashboard() {
     const { error } = await supabase.from('profiles').update({ username: cleanName }).eq('id', profile.id);
     
     if (error) {
-      // Check for Postgres Unique Constraint Violation (Error Code 23505) or duplicate messages
       if (error.code === '23505' || error.message.toLowerCase().includes('duplicate') || error.message.toLowerCase().includes('already exists')) {
         return notify('error', 'This username is already taken by another legend!');
       }
@@ -623,7 +626,6 @@ export default function Dashboard() {
   return (
     <div className={`min-h-screen flex flex-col md:flex-row font-sans relative overflow-x-hidden bg-cover bg-center bg-fixed transition-all duration-700 ${isDark ? "bg-[#0a0f1c] bg-[url('/bg-dark.jpg')]" : "bg-slate-50 bg-[url('/bg-light.jpg')]"}`}>
       
-      {/* 🚀 NEW: GLOBAL TOAST NOTIFICATIONS */}
       <AnimatePresence>
         {notification && (
           <motion.div
@@ -1149,16 +1151,35 @@ export default function Dashboard() {
                     </div>
                   </form>
 
+                  {/* 🚀 NEW: UPDATED PASSWORD FORM WITH EYE ICON TOGGLE */}
                   <form onSubmit={handleUpdatePassword} className="mb-10">
                     <label className={`block text-m font-bold mb-3 ${textTitle}`}>Change Password</label>
                     <div className="flex flex-col xl:flex-row gap-4">
-                      <input 
-                        type="password" 
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="Enter new password"
-                        className={`flex-grow px-5 py-4 rounded-xl border font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all ${isDark ? `${darkInput} border-white/20 text-white placeholder-slate-500` : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'}`}
-                      />
+                      <div className="relative flex-grow">
+                        <input 
+                          type={showUpdatePassword ? "text" : "password"} 
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="Enter new password"
+                          className={`w-full px-5 py-4 pr-12 rounded-xl border font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all ${isDark ? `${darkInput} border-white/20 text-white placeholder-slate-500` : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'}`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowUpdatePassword(!showUpdatePassword)}
+                          className={`absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-md transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`}
+                        >
+                          {showUpdatePassword ? (
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
                       <button type="submit" className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors shadow-sm whitespace-nowrap">
                         Update
                       </button>
