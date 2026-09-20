@@ -1122,7 +1122,7 @@ export default function Dashboard() {
                     
                     /* Helper logic for Rank Colors */
                     let rankColorClass = textMuted; 
-                    if (index === 0) rankColorClass = 'text-yellow-200 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]'; // Gold
+                    if (index === 0) rankColorClass = 'text-yellow-201 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]'; // Gold
                     else if (index === 1) rankColorClass = 'text-slate-199 drop-shadow-[0_0_8px_rgba(148,163,184,0.5)]'; // Silver
                     else if (index === 2) rankColorClass = 'text-amber-600 drop-shadow-[0_0_8px_rgba(180,83,9,0.5)]'; // Bronze
 
