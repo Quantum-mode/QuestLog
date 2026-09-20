@@ -172,6 +172,7 @@ export default function Dashboard() {
 
   const [newPassword, setNewPassword] = useState('');
   const [newUsername, setNewUsername] = useState('');
+  const [newEmail, setNewEmail] = useState('');
   const [notification, setNotification] = useState<{type: 'error'|'success', msg: string} | null>(null);
   const [marketColors, setMarketColors] = useState<Record<string, string>>({});
   
@@ -549,24 +550,33 @@ export default function Dashboard() {
     fetchLeaderboard();
   };
 
-  const handleUpdateUsername = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanName = newUsername.trim();
-    if (!cleanName) return notify('error', 'Player name cannot be empty.');
-    if (cleanName === profile.username) return notify('error', 'That is already your current name!');
-    const { error } = await supabase.from('profiles').update({ username: cleanName }).eq('id', profile.id);
-    if (error) return notify('error', error.message);
-    setProfile({ ...profile, username: cleanName });
-    notify('success', 'Legendary name updated successfully!');
-    fetchLeaderboard();
+  const handleUpdateUsername = async () => {
+    if (!newUsername.trim()) return notify('error', 'Username cannot be empty.');
+    
+    const { error } = await supabase
+      .from('profiles')
+      .update({ username: newUsername })
+      .eq('id', profile.id);
+      
+    if (error) {
+      notify('error', `Update failed: ${error.message}`);
+    } else {
+      setProfile({ ...profile, username: newUsername });
+      notify('success', 'Username successfully updated!');
+    }
   };
 
-  const handleUpdatePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newPassword.length < 6) return notify('error', 'Password must be at least 6 characters.');
+  const handleUpdatePassword = async () => {
+    if (!newPassword.trim()) return notify('error', 'Password cannot be empty.');
+    
     const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) notify('error', error.message);
-    else { notify('success', 'Password forged successfully!'); setNewPassword(''); }
+    
+    if (error) {
+      notify('error', `Failed: ${error.message}`);
+    } else {
+      setNewPassword('');
+      notify('success', 'Password successfully updated!');
+    }
   };
 
   const handleUpdateEmail = async (e: React.FormEvent) => {
@@ -1202,7 +1212,7 @@ export default function Dashboard() {
                   </h2>
                   {/* Adjusted margin below level to balance the new PP spacing */}
                   <p className={`text-base font-bold mb-10 uppercase tracking-wide mt-2 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
-                    Level {profile.level} Hero
+                    Level {profile.level}
                   </p>
 
                   <div className="w-full flex flex-col gap-4 mt-auto">
@@ -1269,12 +1279,12 @@ export default function Dashboard() {
                     <label className={`block text-m font-bold mb-3 ${textTitle}`}>Change Email</label>
                     <div className="flex flex-col xl:flex-row gap-4">
                       <input 
-                        type="email" 
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Enter new email address"
-                        className={`flex-grow px-5 py-4 rounded-xl border font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all ${isDark ? `${darkInput} border-white/20 text-white placeholder-slate-500` : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'}`}
-                      />
+  type="email" 
+  value={newEmail}
+  onChange={(e) => setNewEmail(e.target.value)} 
+  placeholder="Enter new email address" 
+  className={`w-full border p-3 rounded-xl focus:outline-none transition-colors ${inputBg}`} 
+/>
                       <button type="submit" className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors shadow-sm whitespace-nowrap">
                         Update
                       </button>
