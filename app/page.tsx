@@ -18,6 +18,7 @@ export default function LandingAndLogin() {
   const [password, setPassword] = useState('');
   const [playerName, setPlayerName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [scrollText, setScrollText] = useState('Scroll to Enter');
   
   const [notification, setNotification] = useState<{type: 'error'|'success', msg: string} | null>(null);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -32,18 +33,33 @@ export default function LandingAndLogin() {
     const storedTheme = localStorage.getItem('rpg-theme') as 'dark' | 'light';
     if (storedTheme) setTheme(storedTheme);
 
-    if (typeof window !== 'undefined' && window.location.hash.includes('type=recovery')) {
-      setView('update_password');
-    } else {
-      const wipeSessionOnBack = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) await supabase.auth.signOut();
-      };
-      wipeSessionOnBack();
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash;
+      
+      // Dynamic hash detection for email actions
+      if (hash.includes('type=recovery')) {
+        setView('update_password');
+        setScrollText('Scroll to Reset Password');
+      } else if (hash.includes('type=signup')) {
+        setView('login');
+        setScrollText('Scroll to Login');
+      } else if (hash.includes('type=email_change')) {
+        setView('login');
+        setScrollText('Scroll to Login with new email');
+      } else {
+        const wipeSessionOnBack = async () => {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) await supabase.auth.signOut();
+        };
+        wipeSessionOnBack();
+      }
     }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') setView('update_password');
+      if (event === 'PASSWORD_RECOVERY') {
+        setView('update_password');
+        setScrollText('Scroll to Reset Password');
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -123,7 +139,7 @@ export default function LandingAndLogin() {
 
       <AnimatePresence>
         {notification && (
-          <motion.div initial={{ opacity: 0, y: -50 }} animate={{ opacity: 1, y: 20 }} exit={{ opacity: 0, y: -50 }} className={`fixed top-4 left-1/2 -translate-x-1/2 z-[110] flex items-center gap-4 px-6 py-4 rounded-xl shadow-2xl border ${notification.type === 'error' ? 'bg-red-950/90 border-red-500/50 text-red-200' : 'bg-green-950/90 border-green-500/50 text-green-200'} backdrop-blur-md`}>
+          <motion.div initial={{ opacity: 0, y: -50 }} animate={{ opacity: 1, y: 20 }} exit={{ opacity: 0, y: -50 }} className={`fixed top-4 left-1/2 -translate-x-1/2 z-[110] flex items-center gap-4 px-6 py-4 rounded-xl shadow-2xl border w-[90%] md:w-auto ${notification.type === 'error' ? 'bg-red-950/90 border-red-500/50 text-red-200' : 'bg-green-950/90 border-green-500/50 text-green-200'} backdrop-blur-md`}>
             <span className="font-semibold tracking-wide text-sm">{notification.msg}</span>
             <button onClick={() => setNotification(null)} className="p-1 hover:bg-white/20 rounded-md shrink-0"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg></button>
           </motion.div>
@@ -133,29 +149,29 @@ export default function LandingAndLogin() {
       <motion.div style={{ opacity: blurOpacity }} className={`fixed inset-0 backdrop-blur-md pointer-events-none z-0 transition-colors duration-500 ${isDark ? 'bg-slate-950/80' : 'bg-white/60'}`} />
       
       <div className="relative z-10 h-screen w-full snap-start flex flex-col items-center justify-center text-center px-4">
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8 }} className={`p-10 rounded-3xl backdrop-blur-[4px] border shadow-2xl z-10 transition-colors duration-500 ${isDark ? 'bg-black/40 border-white/10' : 'bg-white/60 border-white/50'}`}>
-          <h1 className={`text-5xl md:text-7xl font-extrabold mb-6 drop-shadow-lg tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>QuestLog</h1>
-          <p className={`text-xl md:text-2xl max-w-2xl font-medium drop-shadow-md leading-relaxed ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8 }} className={`p-8 md:p-10 rounded-3xl backdrop-blur-[4px] border shadow-2xl z-10 transition-colors duration-500 w-[95%] max-w-2xl ${isDark ? 'bg-black/40 border-white/10' : 'bg-white/60 border-white/50'}`}>
+          <h1 className={`text-5xl md:text-7xl font-extrabold mb-4 md:mb-6 drop-shadow-lg tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>QuestLog</h1>
+          <p className={`text-lg md:text-2xl max-w-2xl font-medium drop-shadow-md leading-relaxed ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
             Gamify your everyday life with an RPG-style daily task management system.
           </p>
         </motion.div>
 
         <div onClick={() => scrollRef.current?.scrollBy({ top: window.innerHeight, behavior: 'smooth' })} className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center cursor-pointer animate-bounce group z-20">
-          <span className={`text-sm font-bold tracking-widest uppercase mb-1 transition-colors ${isDark ? 'text-white/70 group-hover:text-white' : 'text-slate-700 group-hover:text-slate-900'}`}>
-            {view === 'update_password' ? 'Scroll to Reset Password' : 'Scroll to Enter'}
+          <span className={`text-base md:text-lg font-bold tracking-widest uppercase mb-2 transition-colors ${isDark ? 'text-white/70 group-hover:text-white' : 'text-slate-700 group-hover:text-slate-900'}`}>
+            {scrollText}
           </span>
-          <svg className={`w-8 h-8 transition-colors ${isDark ? 'text-white/70 group-hover:text-white' : 'text-slate-700 group-hover:text-slate-900'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
+          <svg className={`w-10 h-10 transition-colors ${isDark ? 'text-white/70 group-hover:text-white' : 'text-slate-700 group-hover:text-slate-900'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
         </div>
       </div>
 
       <div className="relative z-10 h-screen w-full snap-start flex flex-col items-center justify-center px-4 overflow-hidden">
-        <motion.div initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ amount: 0.5 }} transition={{ duration: 0.6 }} className={`relative z-10 p-8 rounded-2xl shadow-2xl w-full max-w-sm border backdrop-blur-md transition-colors duration-500 ${isDark ? 'bg-slate-900/80 border-slate-700' : 'bg-white/80 border-white/50'}`}>
+        <motion.div initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ amount: 0.5 }} transition={{ duration: 0.6 }} className={`relative z-10 p-6 md:p-8 rounded-2xl shadow-2xl w-[95%] max-w-sm border backdrop-blur-md transition-colors duration-500 ${isDark ? 'bg-slate-900/80 border-slate-700' : 'bg-white/80 border-white/50'}`}>
           <AnimatePresence mode="wait">
             
             {view === 'login' && (
               <motion.div key="login" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-4">
-                <h2 className="text-3xl font-bold mb-2 text-center text-indigo-600">Welcome Back</h2>
-                <p className={`text-center font-medium mb-6 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Join the experience</p>
+                <h2 className="text-2xl md:text-3xl font-bold mb-2 text-center text-indigo-600">Welcome Back</h2>
+                <p className={`text-center font-medium mb-6 text-sm md:text-base ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Join the experience</p>
                 <input type="email" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} className={`w-full p-3 border rounded-lg focus:outline-none focus:border-indigo-500 transition-colors ${isDark ? 'bg-slate-950/80 border-slate-700 text-white' : 'bg-slate-50/80 border-slate-300 text-black'}`} />
                 <div className="relative flex flex-col items-end">
                   <div className="w-full relative">
@@ -167,14 +183,14 @@ export default function LandingAndLogin() {
                   <button onClick={() => setView('reset_request')} className="text-xs text-indigo-500 hover:text-indigo-600 mt-2 font-bold tracking-wide">Lost your password?</button>
                 </div>
                 <button onClick={() => handleAuth('login')} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition-all">Sign In</button>
-                <button onClick={() => setView('signup')} className={`w-full font-bold py-3 hover:underline transition-colors ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>Need a character? Sign up</button>
+                <button onClick={() => setView('signup')} className={`w-full font-bold py-3 hover:underline text-sm md:text-base transition-colors ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>Need a character? Sign up</button>
               </motion.div>
             )}
 
             {view === 'signup' && (
               <motion.div key="signup" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
-                <h2 className="text-3xl font-bold mb-2 text-center text-indigo-600">New Character</h2>
-                <p className={`text-center font-medium mb-6 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Build your legacy</p>
+                <h2 className="text-2xl md:text-3xl font-bold mb-2 text-center text-indigo-600">New Character</h2>
+                <p className={`text-center font-medium mb-6 text-sm md:text-base ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Build your legacy</p>
                 <input type="text" placeholder="Unique Player Name" value={playerName} onChange={(e) => setPlayerName(e.target.value)} className={`w-full p-3 border rounded-lg focus:outline-none focus:border-indigo-500 transition-colors ${isDark ? 'bg-slate-950/80 border-slate-700 text-white' : 'bg-slate-50/80 border-slate-300 text-black'}`} />
                 <input type="email" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} className={`w-full p-3 border rounded-lg focus:outline-none focus:border-indigo-500 transition-colors ${isDark ? 'bg-slate-950/80 border-slate-700 text-white' : 'bg-slate-50/80 border-slate-300 text-black'}`} />
                 <div className="relative">
@@ -184,24 +200,24 @@ export default function LandingAndLogin() {
                   </button>
                 </div>
                 <button onClick={() => handleAuth('signup')} className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition-all">Confirm</button>
-                <button onClick={() => setView('login')} className={`w-full font-bold py-3 hover:underline transition-colors ${isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-slate-900'}`}>Back to Login</button>
+                <button onClick={() => setView('login')} className={`w-full font-bold py-3 hover:underline text-sm md:text-base transition-colors ${isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-slate-900'}`}>Back to Login</button>
               </motion.div>
             )}
 
             {view === 'reset_request' && (
               <motion.div key="reset_request" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="space-y-4">
-                <h2 className="text-3xl font-bold mb-2 text-center text-indigo-600">Reset Password</h2>
-                <p className={`text-center font-medium mb-6 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Enter your email to receive a recovery link.</p>
+                <h2 className="text-2xl md:text-3xl font-bold mb-2 text-center text-indigo-600">Reset Password</h2>
+                <p className={`text-center font-medium mb-6 text-sm md:text-base ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Enter your email to receive a recovery link.</p>
                 <input type="email" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} className={`w-full p-3 border rounded-lg focus:outline-none focus:border-indigo-500 transition-colors ${isDark ? 'bg-slate-950/80 border-slate-700 text-white' : 'bg-slate-50/80 border-slate-300 text-black'}`} />
                 <button onClick={handleResetRequest} className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-lg transition-all">Send Link</button>
-                <button onClick={() => setView('login')} className={`w-full font-bold py-3 hover:underline transition-colors ${isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-slate-900'}`}>Cancel</button>
+                <button onClick={() => setView('login')} className={`w-full font-bold py-3 hover:underline text-sm md:text-base transition-colors ${isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-slate-900'}`}>Cancel</button>
               </motion.div>
             )}
 
             {view === 'update_password' && (
               <motion.div key="update_password" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
-                <h2 className="text-3xl font-bold mb-2 text-center text-indigo-600">Set New Password</h2>
-                <p className={`text-center font-medium mb-6 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Link accepted. Enter your new password below.</p>
+                <h2 className="text-2xl md:text-3xl font-bold mb-2 text-center text-indigo-600">Set New Password</h2>
+                <p className={`text-center font-medium mb-6 text-sm md:text-base ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Link accepted. Enter your new password below.</p>
                 <div className="relative">
                   <input type={showPassword ? "text" : "password"} placeholder="New Password" value={password} onChange={(e) => setPassword(e.target.value)} className={`w-full p-3 border rounded-lg focus:outline-none focus:border-indigo-500 pr-10 transition-colors ${isDark ? 'bg-slate-950/80 border-slate-700 text-white' : 'bg-slate-50/80 border-slate-300 text-black'}`} />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-indigo-600 transition-colors">

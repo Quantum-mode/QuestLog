@@ -824,11 +824,11 @@ export default function Dashboard() {
 
         <div className={`mb-8 hidden md:flex flex-col items-center transition-all w-full ${isSidebarCollapsed ? 'mt-12' : 'mt-16'}`}>
           
-          <div className={`${isSidebarCollapsed ? 'mb-8' : 'mb-16'}`}>
+          <div className={`${isSidebarCollapsed ? 'mb-8' : 'mb-12 md:mb-16'}`}>
             <UserAvatar 
               user={profile} 
-              size={isSidebarCollapsed ? "w-14 h-14" : "w-24 h-24"} 
-              text={isSidebarCollapsed ? "text-2xl" : "text-5xl"} 
+              size={isSidebarCollapsed ? "w-12 h-12" : "w-16 h-16 md:w-24 md:h-24"} 
+              text={isSidebarCollapsed ? "text-xl" : "text-3xl md:text-5xl"} 
               isDark={isDark} 
             />
           </div>
@@ -929,30 +929,30 @@ export default function Dashboard() {
                 className="mx-auto flex flex-col lg:flex-row gap-6 w-full items-stretch transition-all duration-700 ease-out"
               >
                 
-                <div className={`pointer-events-auto border p-6 md:p-8 rounded-2xl flex flex-col h-[690px] overflow-hidden ${cardBg} ${isLeaderboardCollapsed ? 'w-full' : 'w-full lg:w-auto lg:flex-grow'} transition-all duration-750 ease-out`}>
+                <div className={`pointer-events-auto border p-5 md:p-8 rounded-2xl flex flex-col h-[600px] md:h-[690px] overflow-hidden ${cardBg} ${isLeaderboardCollapsed ? 'w-full' : 'w-full lg:w-auto lg:flex-grow'} transition-all duration-750 ease-out`}>
                   
                   <div className="flex justify-between items-center mb-6 shrink-0">
-                    <h3 className={`text-2xl flex items-center gap-2 ${textTitle}`}>⚔️ Quests Board</h3>
+                    <h3 className={`text-xl md:text-2xl flex items-center gap-2 ${textTitle}`}>⚔️ Quests Board</h3>
                     {isLeaderboardCollapsed && (
-                      <button onClick={() => setIsLeaderboardCollapsed(false)} className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-colors shrink-0 ${isDark ? 'bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20' : 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'}`}>
+                      <button onClick={() => setIsLeaderboardCollapsed(false)} className={`flex items-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-lg font-bold transition-colors shrink-0 text-sm md:text-base ${isDark ? 'bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20' : 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'}`}>
                         🏆 <span className="hidden sm:inline">Show Hall of Fame</span>
                       </button>
                     )}
                   </div>
                   
-                  <form onSubmit={handleAddTask} className="flex gap-3 mb-5 shrink-0">
+                  <form onSubmit={handleAddTask} className="flex flex-col sm:flex-row gap-3 mb-5 shrink-0">
                     <input 
                       type="text" 
                       value={newTaskInput} 
                       onChange={(e) => setNewTaskInput(e.target.value)} 
                       disabled={dateOffset < 0}
                       placeholder={dateOffset < 0 ? "You can't add quest in past" : "Enter a new quest..."} 
-                      className={`flex-grow border p-4 rounded-xl focus:outline-none transition-all ${inputBg} ${dateOffset < 0 ? 'opacity-50 cursor-not-allowed border-transparent' : ''}`} 
+                      className={`flex-grow border p-3 md:p-4 rounded-xl focus:outline-none transition-all w-full sm:w-auto ${inputBg} ${dateOffset < 0 ? 'opacity-50 cursor-not-allowed border-transparent' : ''}`} 
                     />
                     <button 
                       type="submit" 
                       disabled={dateOffset < 0}
-                      className={`font-bold px-6 py-4 rounded-xl shadow-lg shrink-0 transition-all ${dateOffset < 0 ? 'bg-slate-600/50 text-slate-400 cursor-not-allowed shadow-none' : 'bg-indigo-600 hover:bg-indigo-700 text-white active:scale-95'}`}
+                      className={`font-bold px-6 py-3 md:py-4 rounded-xl shadow-lg shrink-0 transition-all w-full sm:w-auto ${dateOffset < 0 ? 'bg-slate-600/50 text-slate-400 cursor-not-allowed shadow-none' : 'bg-indigo-600 hover:bg-indigo-700 text-white active:scale-95'}`}
                     >
                       Add
                     </button>
@@ -964,11 +964,11 @@ export default function Dashboard() {
                     </button>
                     
                     <div className="flex items-center gap-3">
-                      <span className={`font-black text-lg ${textTitle}`}>
+                      <span className={`font-black text-sm md:text-lg ${textTitle}`}>
                         {formatDateLabel(dateOffset)}
                       </span>
                       {dateOffset < 0 && uncompletedCount > 0 && (
-                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-red-500 text-white text-xs font-black shadow-sm">
+                        <span className="flex items-center justify-center w-5 h-5 md:w-6 md:h-6 rounded-full bg-red-500 text-white text-[10px] md:text-xs font-black shadow-sm">
                           {uncompletedCount}
                         </span>
                       )}
@@ -982,18 +982,18 @@ export default function Dashboard() {
                   <Reorder.Group axis="y" values={displayedTasks} onReorder={handleReorderTasks} className="flex-grow overflow-y-auto pr-2 space-y-3 hide-scroll internal-scroll pointer-events-auto">
                     <AnimatePresence>
                       {displayedTasks.length === 0 ? (
-                        <p className={`text-center mt-6 italic ${textMuted}`}>No quests recorded for this day.</p>
+                        <p className={`text-center mt-6 italic text-sm md:text-base ${textMuted}`}>No quests recorded for this day.</p>
                       ) : displayedTasks.map((task) => (
-                        <Reorder.Item key={task.id} value={task} id={String(task.id)} className={`relative flex items-center justify-between p-4 rounded-xl border cursor-grab active:cursor-grabbing transition-colors ${task.completed ? (isDark ? `${darkBox} border-white/5 opacity-50` : 'bg-slate-200 border-slate-300 opacity-60') : (isDark ? `${darkInner} border-white/10 hover:border-indigo-500` : 'bg-slate-50 border-slate-200 shadow-sm hover:border-indigo-500')}`}>
-                          <div className="flex items-center gap-4 flex-grow mr-3">
-                            <button onClick={() => completeTask(task.id, task.xp, task.completed)} className={`w-6 h-6 rounded-md border flex-shrink-0 flex items-center justify-center ${task.completed ? 'bg-indigo-500 border-indigo-500' : 'border-slate-400'}`}>
-                              {task.completed && <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                        <Reorder.Item key={task.id} value={task} id={String(task.id)} className={`relative flex items-center justify-between p-3 md:p-4 rounded-xl border cursor-grab active:cursor-grabbing transition-colors ${task.completed ? (isDark ? `${darkBox} border-white/5 opacity-50` : 'bg-slate-200 border-slate-300 opacity-60') : (isDark ? `${darkInner} border-white/10 hover:border-indigo-500` : 'bg-slate-50 border-slate-200 shadow-sm hover:border-indigo-500')}`}>
+                          <div className="flex items-center gap-3 md:gap-4 flex-grow mr-2 md:mr-3 min-w-0">
+                            <button onClick={() => completeTask(task.id, task.xp, task.completed)} className={`w-5 h-5 md:w-6 md:h-6 rounded-md border flex-shrink-0 flex items-center justify-center ${task.completed ? 'bg-indigo-500 border-indigo-500' : 'border-slate-400'}`}>
+                              {task.completed && <svg className="w-3 h-3 md:w-4 md:h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                             </button>
-                            <div>
-                              <p className={`font-bold break-words select-none ${task.completed ? `line-through ${textMuted}` : textTitle}`}>{task.title}</p>
-                              <div className="flex gap-2 mt-1">
-                                <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded select-none ${task.difficulty === 'Hard' ? 'bg-red-500/20 text-red-500' : task.difficulty === 'Medium' ? 'bg-yellow-500/20 text-yellow-600' : 'bg-green-500/20 text-green-600'}`}>{task.difficulty}</span>
-                                <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-500 select-none">+{task.xp} XP</span>
+                            <div className="min-w-0">
+                              <p className={`font-bold text-sm md:text-base break-words select-none truncate whitespace-normal ${task.completed ? `line-through ${textMuted}` : textTitle}`}>{task.title}</p>
+                              <div className="flex flex-wrap gap-2 mt-1">
+                                <span className={`text-[9px] md:text-[10px] uppercase font-black px-2 py-0.5 rounded select-none ${task.difficulty === 'Hard' ? 'bg-red-500/20 text-red-500' : task.difficulty === 'Medium' ? 'bg-yellow-500/20 text-yellow-600' : 'bg-green-500/20 text-green-600'}`}>{task.difficulty}</span>
+                                <span className="text-[9px] md:text-[10px] uppercase font-black px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-500 select-none">+{task.xp} XP</span>
                               </div>
                             </div>
                           </div>
@@ -1007,7 +1007,7 @@ export default function Dashboard() {
                     <div className="mt-4 pt-4 border-t border-slate-200 dark:border-white/10 shrink-0">
                       <button 
                         onClick={handleDeleteAllForDay} 
-                        className="w-full py-3 rounded-xl border border-red-500/20 text-red-500 bg-red-500/10 hover:bg-red-500 hover:text-white font-bold transition-all text-sm"
+                        className="w-full py-3 rounded-xl border border-red-500/20 text-red-500 bg-red-500/10 hover:bg-red-500 hover:text-white font-bold transition-all text-xs md:text-sm"
                       >
                         Delete all tasks for {formatDateLabel(dateOffset).split(' - ')[0].toLowerCase()}
                       </button>
@@ -1018,15 +1018,15 @@ export default function Dashboard() {
                 <AnimatePresence initial={false}>
                   {!isLeaderboardCollapsed && (
                     <motion.div 
-                      initial={{ opacity: 0, width: 0, marginLeft: 0, x: 30 }} 
-                      animate={{ opacity: 1, width: "550px", marginLeft: 0, x: 0 }} 
-                      exit={{ opacity: 0, width: 0, marginLeft: -24, x: 30 }} 
+                      initial={{ opacity: 0, maxWidth: 0, marginLeft: 0, x: 30 }} 
+                      animate={{ opacity: 1, maxWidth: 550, width: "100%", marginLeft: 0, x: 0 }} 
+                      exit={{ opacity: 0, maxWidth: 0, marginLeft: -24, x: 30 }} 
                       transition={{ type: "spring", bounce: 0, duration: 1 }} 
-                      className={`pointer-events-auto border rounded-2xl flex flex-col h-[690px] overflow-hidden shrink-0 ${cardBg}`}
+                      className={`pointer-events-auto border rounded-2xl flex flex-col h-[600px] md:h-[690px] overflow-hidden shrink-0 ${cardBg}`}
                     >
-                      <div className="w-[550px] p-6 md:p-8 flex flex-col h-full">
+                      <div className="w-full lg:w-[550px] p-5 md:p-8 flex flex-col h-full">
                         <div className="flex justify-between items-center mb-6 shrink-0">
-                          <h3 className="text-2xl font-bold text-yellow-500 flex items-center gap-2">🏆 Hall of Fame</h3>
+                          <h3 className="text-xl md:text-2xl font-bold text-yellow-500 flex items-center gap-2">🏆 Hall of Fame</h3>
                           <button onClick={() => setIsLeaderboardCollapsed(true)} title="Hide Hall of Fame" className={`p-2 rounded-lg transition-colors shrink-0 ${isDark ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-200 text-slate-500'}`}>✕</button>
                         </div>
                         <div className="flex-grow overflow-y-auto pr-2 space-y-3 hide-scroll internal-scroll pointer-events-auto">
@@ -1038,30 +1038,30 @@ export default function Dashboard() {
                     else if (index === 2) rankColorClass = 'text-amber-600 drop-shadow-[0_0_8px_rgba(180,83,9,0.5)]'; 
 
                     return (
-                      <div key={index} className={`relative overflow-hidden flex items-center justify-between px-5 py-6 rounded-xl border transition-colors mb-3 ${isDark ? `${darkInner} border-white/10` : 'bg-slate-50 border-slate-200'}`}>
+                      <div key={index} className={`relative overflow-hidden flex items-center justify-between px-3 md:px-5 py-4 md:py-6 rounded-xl border transition-colors mb-3 ${isDark ? `${darkInner} border-white/10` : 'bg-slate-50 border-slate-200'}`}>
                         
                         <div className="flex items-center z-10 min-w-0 flex-grow">
                           
-                          <span className={`text-xl font-black w-20 shrink-0 ${rankColorClass}`}>
+                          <span className={`text-lg md:text-xl font-black w-10 md:w-20 shrink-0 ${rankColorClass}`}>
                             #{index + 1}
                           </span>
                           
                           <UserAvatar 
                             user={leader} 
-                            size="w-14 h-14" 
-                            text="text-2xl" 
-                            spacing="mr-13 shrink-0" 
+                            size="w-10 h-10 md:w-14 md:h-14" 
+                            text="text-xl md:text-2xl" 
+                            spacing="mr-3 md:mr-13 shrink-0" 
                             isDark={isDark} 
                           />
                           
-                          <div className="flex flex-col justify-center min-w-0 mr-4">
-                            <p className={`font-bold text-base truncate ${textTitle}`}>{leader.username}</p>
+                          <div className="flex flex-col justify-center min-w-0 mr-2 md:mr-4">
+                            <p className={`font-bold text-sm md:text-base truncate ${textTitle}`}>{leader.username}</p>
                             
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className={`text-[10px] sm:text-xs font-black uppercase px-2 py-0.5 rounded-md ${isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-100 text-indigo-700'}`}>
+                            <div className="flex items-center gap-1 md:gap-2 mt-1">
+                              <span className={`text-[9px] md:text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-100 text-indigo-700'}`}>
                                 Lvl {leader.level}
                               </span>
-                              <span className={`text-xs font-bold ${textMuted}`}>
+                              <span className={`text-[10px] md:text-xs font-bold ${textMuted} whitespace-nowrap`}>
                                 {leader.current_xp} XP
                               </span>
                             </div>
@@ -1069,8 +1069,8 @@ export default function Dashboard() {
                           
                         </div>
 
-                        <div className="flex flex-col items-end justify-center z-10 shrink-0 ml-2">
-                          <span className="text-sm sm:text-base font-black bg-orange-500/10 text-orange-500 px-3 py-1.5 rounded-lg border border-orange-500/20 whitespace-nowrap shadow-sm">
+                        <div className="flex flex-col items-end justify-center z-10 shrink-0">
+                          <span className="text-xs md:text-base font-black bg-orange-500/10 text-orange-500 px-2 py-1 md:px-3 md:py-1.5 rounded-lg border border-orange-500/20 whitespace-nowrap shadow-sm">
                             {leader.streak_count} 🔥
                           </span>
                         </div>
@@ -1091,77 +1091,76 @@ export default function Dashboard() {
           )}
 
           {activeTab === 'profile' && (
-            <div className="flex flex-col justify-start pt-12 min-h-[85vh] w-full pb-12">
+            <div className="flex flex-col justify-start pt-6 md:pt-12 min-h-[85vh] w-full pb-12">
               
-              <div className="w-full max-w-[1400px] mx-auto flex flex-col lg:flex-row items-stretch gap-8 w-full">
+              <div className="w-full max-w-[1400px] mx-auto flex flex-col lg:flex-row items-stretch gap-6 md:gap-8 w-full">
                 
-                <div className={`pointer-events-auto border p-8 md:p-10 rounded-3xl flex flex-col items-center shrink-0 w-full lg:w-[480px] min-h-[750px] shadow-lg transition-colors duration-500 ${cardBg}`}>
+                <div className={`pointer-events-auto border p-6 md:p-10 rounded-3xl flex flex-col items-center shrink-0 w-full lg:w-[480px] min-h-[500px] md:min-h-[750px] shadow-lg transition-colors duration-500 ${cardBg}`}>
                   
-                  <h3 className={`w-full text-left text-l font-bold uppercase tracking-widest mb-16 ${textMuted}`}>
+                  <h3 className={`w-full text-left text-sm md:text-l font-bold uppercase tracking-widest mb-10 md:mb-16 ${textMuted}`}>
                     Current Profile
                   </h3>
 
-                  <div className="mb-20 mt-8">
+                  <div className="mb-12 md:mb-20 mt-4 md:mt-8 scale-75 md:scale-100">
                     <UserAvatar user={profile} size="w-40 h-40" text="text-7xl" isDark={isDark} />
                   </div>
                   
-                  <h2 className={`text-3xl font-black truncate w-full text-center mt-2 ${textTitle}`}>
+                  <h2 className={`text-2xl md:text-3xl font-black truncate w-full text-center mt-2 ${textTitle}`}>
                     {profile.username}
                   </h2>
-                  <p className={`text-base font-bold mb-10 uppercase tracking-wide mt-2 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
+                  <p className={`text-sm md:text-base font-bold mb-8 md:mb-10 uppercase tracking-wide mt-2 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
                     Level {profile.level} Hero
                   </p>
 
-                  <div className="w-full flex flex-col gap-4 mt-auto">
-                      <div className={`flex justify-between items-center px-5 py-4 rounded-xl border ${isDark ? `${darkInner} border-white/10` : 'bg-slate-50 border-slate-200'}`}>
-                      <span className={`font-bold text-sm ${textMuted}`}>Total XP</span>
-                      <span className={`font-black text-lg ${textTitle}`}>{profile.current_xp}</span>
+                  <div className="w-full flex flex-col gap-3 md:gap-4 mt-auto">
+                      <div className={`flex justify-between items-center px-4 md:px-5 py-3 md:py-4 rounded-xl border ${isDark ? `${darkInner} border-white/10` : 'bg-slate-50 border-slate-200'}`}>
+                      <span className={`font-bold text-xs md:text-sm ${textMuted}`}>Total XP</span>
+                      <span className={`font-black text-base md:text-lg ${textTitle}`}>{profile.current_xp}</span>
                     </div>
-                      <div className={`flex justify-between items-center px-5 py-4 rounded-xl border ${isDark ? `${darkInner} border-white/10` : 'bg-slate-50 border-slate-200'}`}>
-                      <span className={`font-bold text-sm ${textMuted}`}>Gold Balance</span>
-                      <span className="font-black text-lg text-yellow-500">{profile.gold} 🪙</span>
+                      <div className={`flex justify-between items-center px-4 md:px-5 py-3 md:py-4 rounded-xl border ${isDark ? `${darkInner} border-white/10` : 'bg-slate-50 border-slate-200'}`}>
+                      <span className={`font-bold text-xs md:text-sm ${textMuted}`}>Gold Balance</span>
+                      <span className="font-black text-base md:text-lg text-yellow-500">{profile.gold} 🪙</span>
                    </div>
-                      <div className={`flex justify-between items-center px-5 py-4 rounded-xl border ${isDark ? `${darkInner} border-white/10` : 'bg-slate-50 border-slate-200'}`}>
-                      <span className={`font-bold text-sm ${textMuted}`}>Active Streak</span>
-                      <span className="font-black text-lg text-orange-500">{profile.streak_count} 🔥</span>
+                      <div className={`flex justify-between items-center px-4 md:px-5 py-3 md:py-4 rounded-xl border ${isDark ? `${darkInner} border-white/10` : 'bg-slate-50 border-slate-200'}`}>
+                      <span className={`font-bold text-xs md:text-sm ${textMuted}`}>Active Streak</span>
+                      <span className="font-black text-base md:text-lg text-orange-500">{profile.streak_count} 🔥</span>
                     </div>
                   </div>
 
                 </div>
 
-                <div className={`pointer-events-auto border p-8 md:p-10 rounded-3xl flex flex-col flex-grow shadow-lg w-full min-h-[750px] transition-colors duration-500 ${cardBg}`}>
+                <div className={`pointer-events-auto border p-6 md:p-10 rounded-3xl flex flex-col flex-grow shadow-lg w-full min-h-[500px] md:min-h-[750px] transition-colors duration-500 ${cardBg}`}>
                   
-                  <h3 className={`w-full text-left text-l font-bold uppercase tracking-widest mb-16 ${textMuted}`}>
+                  <h3 className={`w-full text-left text-sm md:text-l font-bold uppercase tracking-widest mb-10 md:mb-16 ${textMuted}`}>
                     Account Settings
                   </h3>
 
-                  <form onSubmit={handleUpdateUsername} className="mb-10">
-                    <label className={`block text-m font-bold mb-3 ${textTitle}`}>Change Username</label>
-                    <div className="flex flex-col xl:flex-row gap-4">
+                  <form onSubmit={handleUpdateUsername} className="mb-8 md:mb-10">
+                    <label className={`block text-sm md:text-m font-bold mb-2 md:mb-3 ${textTitle}`}>Change Username</label>
+                    <div className="flex flex-col xl:flex-row gap-3 md:gap-4">
                       <input 
                         type="text" 
                         value={newUsername}
                         onChange={(e) => setNewUsername(e.target.value)}
                         placeholder="Enter new username"
-                        className={`flex-grow px-5 py-4 rounded-xl border font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all ${isDark ? `${darkInput} border-white/20 text-white placeholder-slate-500` : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'}`}
+                        className={`flex-grow px-4 py-3 md:px-5 md:py-4 rounded-xl border font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm md:text-base ${isDark ? `${darkInput} border-white/20 text-white placeholder-slate-500` : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'}`}
                       />
-                      <button type="submit" className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors shadow-sm whitespace-nowrap">
+                      <button type="submit" className="px-8 py-3 md:py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors shadow-sm whitespace-nowrap text-sm md:text-base">
                         Update
                       </button>
                     </div>
                   </form>
 
-                  {/* 🚀 NEW: UPDATED PASSWORD FORM WITH EYE ICON TOGGLE */}
-                  <form onSubmit={handleUpdatePassword} className="mb-10">
-                    <label className={`block text-m font-bold mb-3 ${textTitle}`}>Change Password</label>
-                    <div className="flex flex-col xl:flex-row gap-4">
+                  <form onSubmit={handleUpdatePassword} className="mb-8 md:mb-10">
+                    <label className={`block text-sm md:text-m font-bold mb-2 md:mb-3 ${textTitle}`}>Change Password</label>
+                    <div className="flex flex-col xl:flex-row gap-3 md:gap-4">
                       <div className="relative flex-grow">
                         <input 
                           type={showUpdatePassword ? "text" : "password"} 
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
                           placeholder="Enter new password"
-                          className={`w-full px-5 py-4 pr-12 rounded-xl border font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all ${isDark ? `${darkInput} border-white/20 text-white placeholder-slate-500` : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'}`}
+                          className={`w-full px-4 py-3 md:px-5 md:py-4 pr-12 rounded-xl border font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm md:text-base ${isDark ? `${darkInput} border-white/20 text-white placeholder-slate-500` : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'}`}
                         />
                         <button
                           type="button"
@@ -1169,49 +1168,49 @@ export default function Dashboard() {
                           className={`absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-md transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`}
                         >
                           {showUpdatePassword ? (
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
                           ) : (
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                             </svg>
                           )}
                         </button>
                       </div>
-                      <button type="submit" className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors shadow-sm whitespace-nowrap">
+                      <button type="submit" className="px-8 py-3 md:py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors shadow-sm whitespace-nowrap text-sm md:text-base">
                         Update
                       </button>
                     </div>
                   </form>
 
                   <form onSubmit={handleUpdateEmail} className="mb-10">
-                    <label className={`block text-m font-bold mb-3 ${textTitle}`}>Change Email</label>
-                    <div className="flex flex-col xl:flex-row gap-4">
+                    <label className={`block text-sm md:text-m font-bold mb-2 md:mb-3 ${textTitle}`}>Change Email</label>
+                    <div className="flex flex-col xl:flex-row gap-3 md:gap-4">
                       <input 
                         type="email" 
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="Enter new email address"
-                        className={`flex-grow px-5 py-4 rounded-xl border font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all ${isDark ? `${darkInput} border-white/20 text-white placeholder-slate-500` : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'}`}
+                        className={`flex-grow px-4 py-3 md:px-5 md:py-4 rounded-xl border font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm md:text-base ${isDark ? `${darkInput} border-white/20 text-white placeholder-slate-500` : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'}`}
                       />
-                      <button type="submit" className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors shadow-sm whitespace-nowrap">
+                      <button type="submit" className="px-8 py-3 md:py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors shadow-sm whitespace-nowrap text-sm md:text-base">
                         Update
                       </button>
                     </div>
-                    <p className={`text-s font-bold mt-3 ${textMuted}`}>
+                    <p className={`text-xs md:text-sm font-bold mt-3 ${textMuted}`}>
                       * A verification link will be sent to your new email address to confirm the change.
                     </p>
                   </form>
                   
                   <div className="mt-auto pt-8 border-t border-slate-200 dark:border-slate-700">
-                     <label className="block text-l font-bold mb-4 uppercase tracking-widest text-red-500">
+                     <label className="block text-sm md:text-base font-bold mb-3 md:mb-4 uppercase tracking-widest text-red-500">
                        Danger Zone
                      </label>
                      <button 
                        onClick={() => setShowDeleteModal(true)} 
-                       className="px-6 py-4 w-full xl:w-auto bg-red-500/10 hover:bg-red-500 hover:text-white text-red-500 border border-red-500/20 font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-3"
+                       className="px-6 py-3 md:py-4 w-full xl:w-auto bg-red-500/10 hover:bg-red-500 hover:text-white text-red-500 border border-red-500/20 font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-3 text-sm md:text-base"
                      >
                         <span className="text-xl"></span>Delete Character Forever
                      </button>
