@@ -162,8 +162,8 @@ export default function Dashboard() {
   const [lastGoldReward, setLastGoldReward] = useState(0);
   
   const [showEmailSentModal, setShowEmailSentModal] = useState(false);
+  const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
   
-  // PASSWORD VISIBILITY STATES
   const [showUpdatePassword, setShowUpdatePassword] = useState(false); 
   const [showDeletePassword, setShowDeletePassword] = useState(false); 
   
@@ -227,7 +227,7 @@ export default function Dashboard() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return router.replace('/');
 
-      const { data: { user }, error } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       const currentUser = user || session.user;
 
       if (currentUser && !currentUser.email_confirmed_at) {
@@ -274,7 +274,7 @@ export default function Dashboard() {
     };
 
     try {
-      let { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+      let { data } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
       if (!data) {
         const { data: newProfile, error: insertError } = await supabase.from('profiles').upsert([fallbackProfile]).select().single();
         if (!insertError && newProfile) data = newProfile;
@@ -526,7 +526,10 @@ export default function Dashboard() {
       return notify('error', 'This is already your current email address!');
     }
 
+    setIsUpdatingEmail(true);
     const { error } = await supabase.auth.updateUser({ email: cleanEmail });
+    setIsUpdatingEmail(false);
+
     if (error) {
       if (error.status === 429 || error.message.toLowerCase().includes('rate limit')) {
         notify('error', 'Cooldown active: Please wait a few minutes before requesting another email change.');
@@ -822,7 +825,7 @@ export default function Dashboard() {
           {isSidebarCollapsed ? '❯' : '❮'}
         </button>
 
-        <div className={`mb-8 hidden md:flex flex-col items-center transition-all w-full ${isSidebarCollapsed ? 'mt-12' : 'mt-16'}`}>
+        <div className={`mb-4 md:mb-8 hidden md:flex flex-col items-center transition-all w-full ${isSidebarCollapsed ? 'mt-12' : 'mt-16'}`}>
           
           <div className={`${isSidebarCollapsed ? 'mb-8' : 'mb-12 md:mb-16'}`}>
             <UserAvatar 
@@ -849,7 +852,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        <nav className={`flex md:flex-col gap-3 overflow-x-auto md:overflow-visible w-full ${isSidebarCollapsed ? 'items-center' : ''}`}>
+        <nav className={`flex md:flex-col gap-3 overflow-x-auto md:overflow-visible w-full pb-2 md:pb-0 hide-scroll ${isSidebarCollapsed ? 'items-center' : ''}`}>
           <button onClick={() => setActiveTab('quests')} title="Quests & Board" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all whitespace-nowrap ${activeTab === 'quests' ? activeTabClass : inactiveTabClass} ${isSidebarCollapsed ? 'justify-center w-14 h-14 px-0' : 'w-full'}`}>
             <span className="text-xl shrink-0">⚔️</span>{!isSidebarCollapsed && <span>Quests & Board</span>}
           </button>
@@ -858,6 +861,10 @@ export default function Dashboard() {
           </button>
           <button onClick={() => setActiveTab('profile')} title="Profile Settings" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all whitespace-nowrap ${activeTab === 'profile' ? activeTabClass : inactiveTabClass} ${isSidebarCollapsed ? 'justify-center w-14 h-14 px-0' : 'w-full'}`}>
             <span className="text-xl shrink-0">⚙️</span>{!isSidebarCollapsed && <span>Profile Settings</span>}
+          </button>
+          
+          <button onClick={async () => await supabase.auth.signOut()} title="Sign out" className="flex md:hidden items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all whitespace-nowrap text-red-500 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-white">
+            <span className="text-xl shrink-0">🚪</span><span>Sign out</span>
           </button>
         </nav>
 
@@ -1195,8 +1202,12 @@ export default function Dashboard() {
                         placeholder="Enter new email address"
                         className={`flex-grow px-4 py-3 md:px-5 md:py-4 rounded-xl border font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm md:text-base ${isDark ? `${darkInput} border-white/20 text-white placeholder-slate-500` : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'}`}
                       />
-                      <button type="submit" className="px-8 py-3 md:py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors shadow-sm whitespace-nowrap text-sm md:text-base">
-                        Update
+                      <button 
+                        type="submit" 
+                        disabled={isUpdatingEmail}
+                        className="px-8 py-3 md:py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors shadow-sm whitespace-nowrap text-sm md:text-base"
+                      >
+                        {isUpdatingEmail ? 'Sending email...' : 'Update'}
                       </button>
                     </div>
                     <p className={`text-xs md:text-sm font-bold mt-3 ${textMuted}`}>
@@ -1224,31 +1235,37 @@ export default function Dashboard() {
 
           {activeTab === 'market' && (
             <motion.div initial={{opacity:0, y:10}} animate={{opacity:1, y:0}} className="space-y-10">
-              <div className={`pointer-events-auto max-w-7xl mx-auto flex justify-between items-end border p-6 rounded-2xl shadow-xl ${isDark ? 'bg-slate-900 border-yellow-500' : 'bg-yellow-50 border-yellow-500'}`}>
-                <div><h2 className="text-3xl font-black text-yellow-500 ">Upgrade your Character</h2><p className="text-yellow-600 font-bold">Use your hard earned gold to customize your legend.</p></div>
-                <div className="text-right"><p className="text-slate-500 text-sm font-bold uppercase mb-1">Your Stash</p><p className="text-4xl font-black text-yellow-500">{profile.gold} 🪙</p></div>
+              <div className={`pointer-events-auto max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center md:items-end gap-4 md:gap-0 border p-6 rounded-2xl shadow-xl ${isDark ? 'bg-slate-900 border-yellow-500' : 'bg-yellow-50 border-yellow-500'}`}>
+                <div className="text-center md:text-left">
+                  <h2 className="text-2xl md:text-3xl font-black text-yellow-500">Upgrade your Character</h2>
+                  <p className="text-yellow-600 font-bold text-sm md:text-base">Use your hard earned gold to customize your legend.</p>
+                </div>
+                <div className="text-center md:text-right">
+                  <p className="text-slate-500 text-xs md:text-sm font-bold uppercase mb-1">Your Stash</p>
+                  <p className="text-3xl md:text-4xl font-black text-yellow-500">{profile.gold} 🪙</p>
+                </div>
               </div>
 
               <div className="pointer-events-auto">
                 <div className="w-full flex justify-center md:justify-start mb-6">
-                  <div className={`px-8 py-3 rounded-xl border shadow-sm flex items-center justify-center backdrop-blur-sm ${isDark ? 'bg-indigo-500/45 border-indigo-500/40' : 'bg-indigo-200 border-indigo-400'}`}>
-                    <h3 className={`text-xl md:text-2xl font-black uppercase tracking-widest ${isDark ? 'text-indigo-300' : 'text-indigo-900'}`}>
+                  <div className={`px-6 py-2 md:px-8 md:py-3 rounded-xl border shadow-sm flex items-center justify-center backdrop-blur-sm ${isDark ? 'bg-indigo-500/45 border-indigo-500/40' : 'bg-indigo-200 border-indigo-400'}`}>
+                    <h3 className={`text-lg md:text-2xl font-black uppercase tracking-widest ${isDark ? 'text-indigo-300' : 'text-indigo-900'}`}>
                       Avatars
                     </h3>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
                   {MARKET_AVATARS.map((av) => {
                     const isUnlocked = profile.unlocked_avatars?.includes(av.id);
                     const isEquipped = profile.avatar === av.id;
                     return (
-                      <div key={av.name} className={`border ${isEquipped ? 'border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.4)]' : (isDark ? 'border-slate-700' : 'border-slate-300')} p-4 rounded-xl flex flex-col items-center text-center transition-all hover:-translate-y-1 ${innerCardBg}`}>
-                        <div className="text-6xl mb-4 mt-2">{av.id}</div>
-                        <h4 className={`mb-3 ${textTitle}`}>{av.name}</h4>
+                      <div key={av.name} className={`border ${isEquipped ? 'border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.4)]' : (isDark ? 'border-slate-700' : 'border-slate-300')} p-3 md:p-4 rounded-xl flex flex-col items-center text-center transition-all hover:-translate-y-1 ${innerCardBg}`}>
+                        <div className="text-4xl md:text-6xl mb-3 md:mb-4 mt-2">{av.id}</div>
+                        <h4 className={`mb-2 md:mb-3 text-sm md:text-base ${textTitle}`}>{av.name}</h4>
                         <button 
                           onClick={() => buyAvatar(av)} 
                           disabled={isEquipped} 
-                          className={`w-full py-2 rounded-lg font-bold text-sm transition-all ${isEquipped ? 'bg-indigo-600 text-white cursor-default' : isUnlocked ? 'bg-slate-600 text-white hover:bg-slate-500' : profile.gold >= av.cost ? 'bg-yellow-500 text-white hover:bg-yellow-400 shadow-md' : 'bg-slate-200 dark:bg-slate-950 text-slate-500 dark:text-slate-400 cursor-not-allowed shadow-inner'}`}
+                          className={`w-full py-1.5 md:py-2 rounded-lg font-bold text-xs md:text-sm transition-all ${isEquipped ? 'bg-indigo-600 text-white cursor-default' : isUnlocked ? 'bg-slate-600 text-white hover:bg-slate-500' : profile.gold >= av.cost ? 'bg-yellow-500 text-white hover:bg-yellow-400 shadow-md' : 'bg-slate-200 dark:bg-slate-950 text-slate-500 dark:text-slate-400 cursor-not-allowed shadow-inner'}`}
                         >
                           {isEquipped ? 'Equipped' : isUnlocked ? 'Equip' : `${av.cost} 🪙`}
                         </button>
@@ -1259,34 +1276,34 @@ export default function Dashboard() {
               </div>
 
               <div className="pointer-events-auto">
-                <div className="w-full flex justify-center md:justify-start mt-12 mb-6">
-                  <div className={`px-8 py-3 rounded-xl border shadow-sm flex items-center justify-center backdrop-blur-sm ${isDark ? 'bg-indigo-500/45 border-indigo-500/40' : 'bg-indigo-200 border-indigo-400'}`}>
-                    <h3 className={`text-xl md:text-2xl font-black uppercase tracking-widest ${isDark ? 'text-indigo-300' : 'text-indigo-900'}`}>
+                <div className="w-full flex justify-center md:justify-start mt-10 md:mt-12 mb-6">
+                  <div className={`px-6 py-2 md:px-8 md:py-3 rounded-xl border shadow-sm flex items-center justify-center backdrop-blur-sm ${isDark ? 'bg-indigo-500/45 border-indigo-500/40' : 'bg-indigo-200 border-indigo-400'}`}>
+                    <h3 className={`text-lg md:text-2xl font-black uppercase tracking-widest ${isDark ? 'text-indigo-300' : 'text-indigo-900'}`}>
                       Borders
                     </h3>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                   {MARKET_BORDERS.map((border) => {
                     const isUnlocked = profile.unlocked_borders?.includes(border.id);
                     const isEquipped = profile.border?.startsWith(border.id);
                     return (
-                      <div key={border.name} className={`border ${isEquipped ? 'border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.4)]' : (isDark ? 'border-slate-700' : 'border-slate-300')} p-6 rounded-xl flex flex-col items-center text-center transition-all ${innerCardBg}`}>
-                        <div className="mb-6 mt-2">
+                      <div key={border.name} className={`border ${isEquipped ? 'border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.4)]' : (isDark ? 'border-slate-700' : 'border-slate-300')} p-4 md:p-6 rounded-xl flex flex-col items-center text-center transition-all ${innerCardBg}`}>
+                        <div className="mb-4 md:mb-6 mt-2 scale-75 md:scale-100">
                            <UserAvatar user={{ border: `${border.id}_${marketColors[border.id] || '#facc15'}`, avatar: profile.avatar }} size="w-20 h-20" spacing="my-8" text="text-4xl" isDark={isDark} />
                         </div>
-                        <h4 className={`mb-2 ${textTitle}`}>{border.name}</h4>
+                        <h4 className={`mb-2 text-sm md:text-base ${textTitle}`}>{border.name}</h4>
                         {border.customColor && (
-                          <div className="flex gap-2 mb-4">
+                          <div className="flex gap-2 mb-3 md:mb-4">
                             {['#ef4444', '#3b82f6', '#10b981', '#a855f7', '#facc15'].map(hex => (
-                              <button key={hex} onClick={() => { setMarketColors({...marketColors, [border.id]: hex}); if (profile.unlocked_borders?.includes(border.id)) { buyBorder(border, hex); } }} className={`w-5 h-5 rounded-full border-2 transition-all ${marketColors[border.id] === hex || (!marketColors[border.id] && hex === '#facc15') ? `scale-125 ${isDark ? 'border-white' : 'border-slate-900'}` : 'border-transparent hover:scale-110'}`} style={{ backgroundColor: hex }} />
+                              <button key={hex} onClick={() => { setMarketColors({...marketColors, [border.id]: hex}); if (profile.unlocked_borders?.includes(border.id)) { buyBorder(border, hex); } }} className={`w-4 h-4 md:w-5 md:h-5 rounded-full border-2 transition-all ${marketColors[border.id] === hex || (!marketColors[border.id] && hex === '#facc15') ? `scale-125 ${isDark ? 'border-white' : 'border-slate-900'}` : 'border-transparent hover:scale-110'}`} style={{ backgroundColor: hex }} />
                             ))}
                           </div>
                         )}
                         <button 
                           onClick={() => buyBorder(border)} 
                           disabled={isEquipped} 
-                          className={`w-full py-2 rounded-lg font-bold text-sm mt-auto transition-all ${isEquipped ? 'bg-indigo-600 text-white cursor-default' : isUnlocked ? 'bg-slate-600 text-white hover:bg-slate-500' : profile.gold >= border.cost ? 'bg-yellow-500 text-white hover:bg-yellow-400 shadow-md' : 'bg-slate-200 dark:bg-slate-950 text-slate-500 dark:text-slate-400 cursor-not-allowed shadow-inner'}`}
+                          className={`w-full py-1.5 md:py-2 rounded-lg font-bold text-xs md:text-sm mt-auto transition-all ${isEquipped ? 'bg-indigo-600 text-white cursor-default' : isUnlocked ? 'bg-slate-600 text-white hover:bg-slate-500' : profile.gold >= border.cost ? 'bg-yellow-500 text-white hover:bg-yellow-400 shadow-md' : 'bg-slate-200 dark:bg-slate-950 text-slate-500 dark:text-slate-400 cursor-not-allowed shadow-inner'}`}
                         >
                           {isEquipped ? 'Equipped' : isUnlocked ? 'Equip' : `${border.cost} 🪙`}
                         </button>
@@ -1303,13 +1320,13 @@ export default function Dashboard() {
       {showDeletedConfirmation && (
         <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md pointer-events-auto">
           <div className={`w-full max-w-md p-6 md:p-8 rounded-3xl shadow-2xl border flex flex-col items-center text-center ${isDark ? 'bg-slate-900 border-red-900/50' : 'bg-white border-red-200'}`}>
-            <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mb-4">
-              <span className="text-3xl">☠️</span>
+            <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-red-500/20 flex items-center justify-center mb-4">
+              <span className="text-2xl md:text-3xl">☠️</span>
             </div>
-            <h2 className={`text-2xl font-black mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+            <h2 className={`text-xl md:text-2xl font-black mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>
               Legend Deleted
             </h2>
-            <p className={`text-sm font-bold mb-8 ${textMuted}`}>
+            <p className={`text-xs md:text-sm font-bold mb-8 ${textMuted}`}>
               Your character, XP, Gold, and all history have been permanently wiped from the realm.
             </p>
             <button 
@@ -1317,7 +1334,7 @@ export default function Dashboard() {
                 await supabase.auth.signOut();
                 router.replace('/');
               }}
-              className="w-full px-6 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl transition-all shadow-sm"
+              className="w-full px-6 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl transition-all shadow-sm text-sm md:text-base"
             >
               Return to Login
             </button>
@@ -1328,38 +1345,38 @@ export default function Dashboard() {
       {showDeleteModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm pointer-events-auto">
           
-          <div className={`w-full max-w-md p-6 md:p-8 rounded-3xl shadow-2xl border flex flex-col ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+          <div className={`w-full max-w-md p-5 md:p-8 rounded-3xl shadow-2xl border flex flex-col ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
             
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center shrink-0">
-                <span className="text-2xl">⚠️</span>
+            <div className="flex items-center gap-3 md:gap-4 mb-4">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-red-500/20 flex items-center justify-center shrink-0">
+                <span className="text-xl md:text-2xl">⚠️</span>
               </div>
-              <h2 className={`text-2xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              <h2 className={`text-lg md:text-2xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
                 Delete Character Forever?
               </h2>
             </div>
             
-            <p className={`text-sm font-bold mb-6 ${textMuted}`}>
+            <p className={`text-xs md:text-sm font-bold mb-6 ${textMuted}`}>
               Are you absolutely sure you want to do this? This action <span className="text-red-500">cannot be undone</span>. All of your profile data will be permanently wiped from the database.
             </p>
 
             {deleteError && (
-              <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-bold text-center">
+              <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-xs md:text-sm font-bold text-center">
                 {deleteError}
               </div>
             )}
 
-            <label className={`block text-sm font-bold mb-2 ${textTitle}`}>
+            <label className={`block text-xs md:text-sm font-bold mb-2 ${textTitle}`}>
               Type your password to confirm:
             </label>
             
-            <div className="relative mb-8 w-full">
+            <div className="relative mb-6 md:mb-8 w-full">
               <input 
                 type={showDeletePassword ? "text" : "password"} 
                 value={deletePassword}
                 onChange={(e) => setDeletePassword(e.target.value)}
                 placeholder="Enter your password"
-                className={`w-full px-4 py-3 rounded-xl border font-bold focus:outline-none focus:ring-2 focus:ring-red-500 transition-all pr-12 ${isDark ? 'bg-slate-800 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'}`}
+                className={`w-full px-4 py-3 rounded-xl border font-bold focus:outline-none focus:ring-2 focus:ring-red-500 transition-all pr-12 text-sm md:text-base ${isDark ? 'bg-slate-800 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'}`}
               />
               <button
                 type="button"
@@ -1367,12 +1384,12 @@ export default function Dashboard() {
                 className={`absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-md transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`}
               >
                 {showDeletePassword ? (
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                   </svg>
                 ) : (
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                   </svg>
                 )}
@@ -1386,7 +1403,7 @@ export default function Dashboard() {
                   setDeletePassword('');
                   setShowDeletePassword(false);
                 }}
-                className={`w-full px-6 py-3 font-bold rounded-xl transition-colors ${isDark ? 'hover:bg-slate-800 text-slate-300' : 'hover:bg-slate-100 text-slate-600'}`}
+                className={`w-full px-6 py-3 font-bold rounded-xl transition-colors text-sm md:text-base ${isDark ? 'hover:bg-slate-800 text-slate-300' : 'hover:bg-slate-100 text-slate-600'}`}
               >
                 Cancel
               </button>
@@ -1394,7 +1411,7 @@ export default function Dashboard() {
               <button 
                 onClick={handleDeleteAccount}
                 disabled={deletePassword.length === 0}
-                className="w-full px-6 py-3 bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all shadow-sm"
+                className="w-full px-6 py-3 bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all shadow-sm text-sm md:text-base"
               >
                 Delete Forever
               </button>
@@ -1404,22 +1421,21 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* 📧 EMAIL SENT MODAL */}
       {showEmailSentModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm pointer-events-auto">
           <div className={`w-full max-w-md p-6 md:p-8 rounded-3xl shadow-2xl border flex flex-col items-center text-center ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
-            <div className="w-16 h-16 rounded-full bg-indigo-500/20 flex items-center justify-center mb-4">
-              <span className="text-3xl">✉️</span>
+            <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-indigo-500/20 flex items-center justify-center mb-4">
+              <span className="text-2xl md:text-3xl">✉️</span>
             </div>
-            <h2 className={`text-2xl font-black mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+            <h2 className={`text-xl md:text-2xl font-black mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>
               Check Your Inboxes
             </h2>
-            <p className={`text-sm font-bold mb-8 ${textMuted}`}>
+            <p className={`text-xs md:text-sm font-bold mb-8 ${textMuted}`}>
               Please click on <span className="text-indigo-500">BOTH</span> the verification links sent to your old and new emails to ensure the email update.
             </p>
             <button 
               onClick={() => setShowEmailSentModal(false)}
-              className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all shadow-sm"
+              className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all shadow-sm text-sm md:text-base"
             >
               Understood
             </button>

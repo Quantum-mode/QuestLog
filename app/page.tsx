@@ -19,6 +19,7 @@ export default function LandingAndLogin() {
   const [playerName, setPlayerName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [scrollText, setScrollText] = useState('Scroll to Enter');
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
   
   const [notification, setNotification] = useState<{type: 'error'|'success', msg: string} | null>(null);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -36,7 +37,6 @@ export default function LandingAndLogin() {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash;
       
-      // Dynamic hash detection for email actions
       if (hash.includes('type=recovery')) {
         setView('update_password');
         setScrollText('Scroll to Reset Password');
@@ -76,17 +76,19 @@ export default function LandingAndLogin() {
   };
 
   const handleAuth = async (action: 'login' | 'signup') => {
+    setIsAuthLoading(true);
     if (action === 'signup') {
-      if (!playerName.trim()) return notify('error', "Player name is required!");
-      if (!emailRegex.test(email.trim())) return notify('error', "Please enter a valid email format.");
+      if (!playerName.trim()) { setIsAuthLoading(false); return notify('error', "Player name is required!"); }
+      if (!emailRegex.test(email.trim())) { setIsAuthLoading(false); return notify('error', "Please enter a valid email format."); }
       const { data: existingName } = await supabase.from('profiles').select('username').eq('username', playerName).maybeSingle();
-      if (existingName) return notify('error', 'That player name is already taken. Try a different one!');
+      if (existingName) { setIsAuthLoading(false); return notify('error', 'That player name is already taken. Try a different one!'); }
       
       const { data: authData, error: authError } = await supabase.auth.signUp({ 
         email, password, options: { data: { username: playerName } }
       });
 
       if (authError) {
+        setIsAuthLoading(false);
         if (authError.message.includes('already registered')) return notify('error', 'This email is already in use. Please sign in instead.');
         return notify('error', `Failed to create character: ${authError.message}`);
       }
@@ -96,6 +98,7 @@ export default function LandingAndLogin() {
            notify('success', 'Character forged successfully! Entering the tavern...');
            setTimeout(() => router.push('/dashboard'), 1500); 
         } else {
+           setIsAuthLoading(false);
            notify('success', 'Scroll sent! Check your email to verify your character.');
            setView('login'); 
         }
@@ -104,6 +107,7 @@ export default function LandingAndLogin() {
     
     if (action === 'login') {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
+      setIsAuthLoading(false);
       if (error) notify('error', `Login failed: ${error.message}`);
       else router.push('/dashboard');
     }
@@ -112,7 +116,11 @@ export default function LandingAndLogin() {
   const handleResetRequest = async () => {
     if (!email.trim()) return notify('error', "Please enter your email first.");
     if (!emailRegex.test(email.trim())) return notify('error', "Please enter a valid email format.");
+    
+    setIsAuthLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/` });
+    setIsAuthLoading(false);
+    
     if (error) return notify('error', `Failed: ${error.message}`);
     notify('success', "A password recovery link has been sent to your email! (Check your spam folder).");
     setView('login');
@@ -120,7 +128,10 @@ export default function LandingAndLogin() {
 
   const handlePasswordUpdate = async () => {
     if (!password.trim()) return notify('error', "Please enter a new password.");
+    setIsAuthLoading(true);
     const { error } = await supabase.auth.updateUser({ password });
+    setIsAuthLoading(false);
+    
     if (error) return notify('error', `Failed to update password: ${error.message}`);
     notify('success', "Password successfully forged! Welcome back to the tavern.");
     router.push('/dashboard');
@@ -182,7 +193,9 @@ export default function LandingAndLogin() {
                   </div>
                   <button onClick={() => setView('reset_request')} className="text-xs text-indigo-500 hover:text-indigo-600 mt-2 font-bold tracking-wide">Lost your password?</button>
                 </div>
-                <button onClick={() => handleAuth('login')} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition-all">Sign In</button>
+                <button onClick={() => handleAuth('login')} disabled={isAuthLoading} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold py-3 rounded-lg transition-all">
+                  {isAuthLoading ? 'Loading...' : 'Sign In'}
+                </button>
                 <button onClick={() => setView('signup')} className={`w-full font-bold py-3 hover:underline text-sm md:text-base transition-colors ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>Need a character? Sign up</button>
               </motion.div>
             )}
@@ -199,7 +212,9 @@ export default function LandingAndLogin() {
                     {showPassword ? <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg> : <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>}
                   </button>
                 </div>
-                <button onClick={() => handleAuth('signup')} className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition-all">Confirm</button>
+                <button onClick={() => handleAuth('signup')} disabled={isAuthLoading} className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-bold py-3 rounded-lg transition-all">
+                  {isAuthLoading ? 'Sending scroll...' : 'Confirm'}
+                </button>
                 <button onClick={() => setView('login')} className={`w-full font-bold py-3 hover:underline text-sm md:text-base transition-colors ${isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-slate-900'}`}>Back to Login</button>
               </motion.div>
             )}
@@ -209,8 +224,14 @@ export default function LandingAndLogin() {
                 <h2 className="text-2xl md:text-3xl font-bold mb-2 text-center text-indigo-600">Reset Password</h2>
                 <p className={`text-center font-medium mb-6 text-sm md:text-base ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Enter your email to receive a recovery link.</p>
                 <input type="email" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} className={`w-full p-3 border rounded-lg focus:outline-none focus:border-indigo-500 transition-colors ${isDark ? 'bg-slate-950/80 border-slate-700 text-white' : 'bg-slate-50/80 border-slate-300 text-black'}`} />
-                <button onClick={handleResetRequest} className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-lg transition-all">Send Link</button>
-                <button onClick={() => setView('login')} className={`w-full font-bold py-3 hover:underline text-sm md:text-base transition-colors ${isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-slate-900'}`}>Cancel</button>
+                <button 
+                  onClick={handleResetRequest} 
+                  disabled={isAuthLoading}
+                  className="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-lg transition-all"
+                >
+                  {isAuthLoading ? 'Sending email...' : 'Send Link'}
+                </button>
+                <button onClick={() => setView('login')} disabled={isAuthLoading} className={`w-full font-bold py-3 hover:underline text-sm md:text-base transition-colors ${isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-slate-900'}`}>Cancel</button>
               </motion.div>
             )}
 
@@ -224,7 +245,9 @@ export default function LandingAndLogin() {
                     {showPassword ? <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg> : <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>}
                   </button>
                 </div>
-                <button onClick={handlePasswordUpdate} className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition-all">Save & Enter</button>
+                <button onClick={handlePasswordUpdate} disabled={isAuthLoading} className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-bold py-3 rounded-lg transition-all">
+                  {isAuthLoading ? 'Updating...' : 'Save & Enter'}
+                </button>
               </motion.div>
             )}
 
