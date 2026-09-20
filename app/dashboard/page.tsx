@@ -172,8 +172,6 @@ export default function Dashboard() {
 
   const [newPassword, setNewPassword] = useState('');
   const [newUsername, setNewUsername] = useState('');
-  const [newEmail, setNewEmail] = useState('');
-  const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
   const [notification, setNotification] = useState<{type: 'error'|'success', msg: string} | null>(null);
   const [marketColors, setMarketColors] = useState<Record<string, string>>({});
   
@@ -551,53 +549,51 @@ export default function Dashboard() {
     fetchLeaderboard();
   };
 
-  const handleUpdateUsername = async () => {
-    if (!newUsername.trim()) return notify('error', 'Username cannot be empty.');
-    
-    const { error } = await supabase
-      .from('profiles')
-      .update({ username: newUsername })
-      .eq('id', profile.id);
-      
-    if (error) {
-      notify('error', `Update failed: ${error.message}`);
-    } else {
-      setProfile({ ...profile, username: newUsername });
-      notify('success', 'Username successfully updated!');
-    }
+  const handleUpdateUsername = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanName = newUsername.trim();
+    if (!cleanName) return notify('error', 'Player name cannot be empty.');
+    if (cleanName === profile.username) return notify('error', 'That is already your current name!');
+    const { error } = await supabase.from('profiles').update({ username: cleanName }).eq('id', profile.id);
+    if (error) return notify('error', error.message);
+    setProfile({ ...profile, username: cleanName });
+    notify('success', 'Legendary name updated successfully!');
+    fetchLeaderboard();
   };
 
-  const handleUpdatePassword = async () => {
-    if (!newPassword.trim()) return notify('error', 'Password cannot be empty.');
-    
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 6) return notify('error', 'Password must be at least 6 characters.');
     const { error } = await supabase.auth.updateUser({ password: newPassword });
-    
-    if (error) {
-      notify('error', `Failed: ${error.message}`);
-    } else {
-      setNewPassword('');
-      notify('success', 'Password successfully updated!');
-    }
+    if (error) notify('error', error.message);
+    else { notify('success', 'Password forged successfully!'); setNewPassword(''); }
   };
 
-  const handleUpdateEmail = async () => {
-  if (!newEmail.trim()) {
-    return notify('error', 'Email cannot be empty.');
-  }
-  
-  setIsUpdatingEmail(true); // ⚡ Instantly triggers loading UI
-  
-  const { error } = await supabase.auth.updateUser({ email: newEmail });
-  
-  setIsUpdatingEmail(false); // ⚡ Turns off loading UI
-  
-  if (error) {
-    notify('error', `Failed: ${error.message}`);
-  } else {
-    notify('success', 'Email update processed!');
-    setNewEmail(''); 
-  }
-};
+  const handleUpdateEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanEmail = email.trim();
+
+    if (!cleanEmail) return notify('error', 'Email cannot be empty.');
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) return notify('error', 'Please enter a valid email format.');
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user?.email === cleanEmail) {
+      return notify('error', 'This is already your current email address!');
+    }
+
+    const { error } = await supabase.auth.updateUser({ email: cleanEmail });
+    if (error) {
+      if (error.status === 429 || error.message.toLowerCase().includes('rate limit')) {
+        notify('error', 'Cooldown active: Please wait a few minutes before requesting another email change.');
+      } else {
+        notify('error', error.message);
+      }
+    } else {
+      setShowEmailSentModal(true);
+    }
+  };
 
   const handleDeleteAccount = async () => {
     setDeleteError(''); // Reset any previous errors
@@ -1122,7 +1118,7 @@ export default function Dashboard() {
                     
                     /* Helper logic for Rank Colors */
                     let rankColorClass = textMuted; 
-                    if (index === 0) rankColorClass = 'text-yellow-201 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]'; // Gold
+                    if (index === 0) rankColorClass = 'text-yellow-200 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]'; // Gold
                     else if (index === 1) rankColorClass = 'text-slate-199 drop-shadow-[0_0_8px_rgba(148,163,184,0.5)]'; // Silver
                     else if (index === 2) rankColorClass = 'text-amber-600 drop-shadow-[0_0_8px_rgba(180,83,9,0.5)]'; // Bronze
 
@@ -1206,7 +1202,7 @@ export default function Dashboard() {
                   </h2>
                   {/* Adjusted margin below level to balance the new PP spacing */}
                   <p className={`text-base font-bold mb-10 uppercase tracking-wide mt-2 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
-                    Level {profile.level}
+                    Level {profile.level} Hero
                   </p>
 
                   <div className="w-full flex flex-col gap-4 mt-auto">
@@ -1271,23 +1267,18 @@ export default function Dashboard() {
                   {/* Kept mb-10 */}
                   <form onSubmit={handleUpdateEmail} className="mb-10">
                     <label className={`block text-m font-bold mb-3 ${textTitle}`}>Change Email</label>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col xl:flex-row gap-4">
                       <input 
-                      type="email" 
-                      value={newEmail}
-                      onChange={(e) => setNewEmail(e.target.value)} 
-                      placeholder="Enter new email address" 
-                      className={`flex-grow border p-3 rounded-xl focus:outline-none transition-colors ${inputBg}`} 
+                        type="email" 
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Enter new email address"
+                        className={`flex-grow px-5 py-4 rounded-xl border font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all ${isDark ? `${darkInput} border-white/20 text-white placeholder-slate-500` : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'}`}
                       />
-                      <button 
-                      onClick={handleUpdateEmail} 
-                      disabled={isUpdatingEmail}
-                      className={`font-bold px-6 py-3 rounded-xl transition-all ${isUpdatingEmail ? 'bg-indigo-400 cursor-wait shadow-none' : 'bg-indigo-600 hover:bg-indigo-700 active:scale-95 shadow-lg'} text-white`}
-                      >
-                      {isUpdatingEmail ? 'Sending...' : 'Update'}
+                      <button type="submit" className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors shadow-sm whitespace-nowrap">
+                        Update
                       </button>
                     </div>
-
                     <p className={`text-s font-bold mt-3 ${textMuted}`}>
                       * A verification link will be sent to your new email address to confirm the change.
                     </p>
